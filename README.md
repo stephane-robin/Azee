@@ -1,56 +1,54 @@
-# Welcome to your Expo app 👋
+# Bienvenue sur l'app mobile Mes Docs 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+1. Objet de l'application 
+   
+   *Mes Docs* est un outil numérique personnel et gratuit pour l'organisation de la prise de médicaments. L'application aide à se rappeler que la prise de médicaments a été effectuée, mais n'envoie aucune notification de prise de médicaments. Elle se complète avec les données que vous lui fournissez, ne constitue pas un dispositif médical et ne se substitue pas aux conseils d'un professionnel de santé.
 
-## Get started
 
-1. Install dependencies
+2. Absence de conseil médical
 
-   ```bash
-   npm install
-   ```
+   L'application ne fournit aucun avis thérapeutique. Le médecin ou le pharmacien reste l'unique référent pour la posologie et le suivi de vos traitements.
 
-2. Start the app
+3. Limitation de responsabilité
 
-   ```bash
-   npx expo start
-   ```
+   L'auteur ne peut être tenu responsable d'une erreur de posologie, d'une mauvaise utilisation de la plateforme ou d'un oubli de traitement lié à une défaillance technique, un arrêt de l'application ou un problème de notification.
 
-In the output, you'll find options to open the app in a
+4. Conseils d'utilisation
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+   Au démarrage aucun médicament n'est enregistré. Appuyez sur **+ Nouveau médicament** pour rajouter un médicament. Le nom du médicament ainsi que la durée du traitement doivent être renseignés. La fréquence de prise est réglée par défaut au matin et soir mais peut être modifiée. Le détail de la posologie est facultatif. Il faut appuyer sur **Enregistrer** pour que les données soient sauvegardées sur le téléphone, puis qu'elles apparaissent sur la page d'accueil de l'application. Il est alors possible d'afficher le calendrier de traitement, le détail de la posologie ou de supprimer le médicament concerné. Lors d'une prise de médicament, le fait de cliquer sur un bouton rouge marqué **Non pris** transforme le bouton en vert marqué **Pris**
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+5. Données personnelles
 
-## Get a fresh project
+   Vos données ne sont ni collectées ni partagées. Elles sont stockées exclusivement et localement sur votre appareil.
 
-When you're ready, run:
+6. Propriété intellectuelle
 
-```bash
-npm run reset-project
-```
+   Tous les droits relatifs à l'application et à son code source sont réservés.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
-### Other setup steps
+# Welcome to the Mes Docs mobile app 👋
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+1. Purpose of the application
 
-## Learn more
+   *Mes Docs* is a free, personal digital tool for organizing medication intake. The application helps you remember that a medication has been taken, but it does not send any medication intake notifications. It relies on the data you provide, is not a medical device, and is not a substitute for the advice of a healthcare professional.
 
-To learn more about developing your project with Expo, look at the following resources:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+2. No medical advice
 
-## Join the community
+   The application does not provide any therapeutic advice. Your doctor or pharmacist remains the sole point of reference for the dosage and monitoring of your treatments.
 
-Join our community of developers creating universal apps.
+3. Limitation of liability
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+   The author cannot be held liable for a dosage error, misuse of the platform, or a missed treatment resulting from a technical failure, an application shutdown, or a notification issue.
+
+4. Usage tips
+
+   When you first launch the app, no medication is registered. Tap **+ Nouveau Médicament** to add a medication. The medication name and the duration of the treatment must be filled in. The intake frequency is set by default to morning and evening but can be changed. The dosage details are optional. You must tap **Enregistrer** for the data to be stored on the phone and to appear on the application's home page. You can then display the treatment calendar, view the dosage details, or delete the medication concerned. When taking a medication, tapping a red button labeled **Non pris** turns the button green and labeled **Pris**.
+
+5. Personal data
+
+   Your data is neither collected nor shared. It is stored exclusively and locally on your device.
+
+6. Intellectual property
+
+   All rights relating to the application and its source code are reserved.

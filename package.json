@@ -2,6 +2,7 @@
   "name": "mesdocs",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "license": "CC-BY-NC-4.0",
   "dependencies": {
     "@expo/ui": "~58.0.22",
     "@expo/vector-icons": "^15.0.2",
