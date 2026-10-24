@@ -1,0 +1,9 @@
+export const couleurFond = '#f4f4f8';
+export const bleuPrincipal = '#6bc4f0';
+export const bleuSecondaire = '#d0e4ee';
+export const transparent = '#00000066';
+export const grisIntermediaire = '#8e8e93';
+export const grisSombre = '#3a3a3c';
+export const grisClair = '#c7c7cc';
+export const rouge = '#ff4d4d';
+export const vert = '#2ecc71';
