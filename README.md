@@ -1,5 +1,9 @@
 # Bienvenue sur l'app mobile Mes Docs 👋
 
+Pour télécharger et installer l'application mobile *Mes Docs*, se rendre sur le site https://expo.dev/accounts/le-bon-cairn/projects/MesDocs/builds/cc5599d4-f673-4417-a6ab-e42a7b09c3e2 et autoriser le téléchargement.
+
+Cette application mobile est configurée uniquement pour un système d'exploitation Android.
+
 1. Objet de l'application 
    
    *Mes Docs* est un outil numérique personnel et gratuit pour l'organisation de la prise de médicaments. L'application aide à se rappeler que la prise de médicaments a été effectuée, mais n'envoie aucune notification de prise de médicaments. Elle se complète avec les données que vous lui fournissez, ne constitue pas un dispositif médical et ne se substitue pas aux conseils d'un professionnel de santé.
@@ -27,6 +31,8 @@
 
 
 # Welcome to the Mes Docs mobile app 👋
+
+To download and install the mobile app *Mes Docs*, go to https://expo.dev/accounts/le-bon-cairn/projects/MesDocs/builds/cc5599d4-f673-4417-a6ab-e42a7b09c3e2 and allow the download.
 
 1. Purpose of the application
 
