@@ -434,7 +434,7 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {/* signature */}
-      <Text style={styles.signature}>Version 1.0.0 - S. Robin</Text>
+      <Text style={styles.signature}>v1.0.1 - S. Robin</Text>
 
       {/* modal conditions utilisation */}
       <Modal

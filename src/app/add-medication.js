@@ -74,15 +74,30 @@ export default function AddMedicationScreen() {
       <Text style={styles.label}>Fréquence de prise</Text>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Matin</Text>
-        <Switch value={morning} onValueChange={setMorning} />
+        <Switch 
+        value={morning} 
+        onValueChange={setMorning}
+        trackColor={{ false: grisClair, true: grisClair }}
+        thumbColor={morning ? bleuPrincipal : '#f4f3f4'}
+        />
       </View>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Midi</Text>
-        <Switch value={noon} onValueChange={setNoon} />
+        <Switch 
+        value={noon} 
+        onValueChange={setNoon}
+        trackColor={{ false: grisClair, true: grisClair }}
+        thumbColor={noon ? bleuPrincipal : '#f4f3f4'}
+        />
       </View>
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Soir</Text>
-        <Switch value={eveningState} onValueChange={setEveningState} />
+        <Switch 
+        value={eveningState} 
+        onValueChange={setEveningState}
+        trackColor={{ false: grisClair, true: grisClair }}
+        thumbColor={eveningState ? bleuPrincipal : '#f4f3f4'}
+        />
       </View>
 
       <Text style={styles.label}>Posologie</Text>
@@ -134,11 +149,10 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     // Ombre Android
     elevation: 6,
-    marginVertical: 8,       
-    shadowColor: bleuPrincipal
-  },
+    marginVertical: 8
+    },
   input: { 
-    baskgroundColor: '#fff',
+    backgroundColor: '#fff',
     borderRadius: 25, 
     padding: 12, 
     fontSize: 16,
@@ -148,7 +162,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    marginVertical: 8 
+    marginVertical: 8,
+    paddingHorizontal: 12
   },
   switchLabel: { 
     fontSize: 16 
