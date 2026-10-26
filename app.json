@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "MesDocs",
+    "name": "Azee",
     "slug": "MesDocs",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mesdocs",
+    "scheme": "azee",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "leboncairn.mesdocs"
+      "package": "mon-cairn.azee"
     },
     "web": {
       "output": "static",
