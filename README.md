@@ -1,10 +1,10 @@
-# Bienvenue sur l'app mobile Mes Docs 👋
+# Bienvenue sur l'app mobile Azee 👋
 
 Cette application mobile est configurée uniquement pour un système d'exploitation Android.
 
 1. Objet de l'application 
    
-   *Mes Docs* est un outil numérique personnel et gratuit pour l'organisation de la prise de médicaments. L'application aide à se rappeler que la prise de médicaments a été effectuée, mais n'envoie aucune notification de prise de médicaments. Elle se complète avec les données que vous lui fournissez, ne constitue pas un dispositif médical et ne se substitue pas aux conseils d'un professionnel de santé.
+   *Azee* est un outil numérique personnel et gratuit pour l'organisation de la prise de médicaments. L'application aide à se rappeler que la prise de médicaments a été effectuée, mais n'envoie aucune notification de prise de médicaments. Elle se complète avec les données que vous lui fournissez, ne constitue pas un dispositif médical et ne se substitue pas aux conseils d'un professionnel de santé.
 
 
 2. Absence de conseil médical
@@ -28,13 +28,13 @@ Cette application mobile est configurée uniquement pour un système d'exploitat
    Tous les droits relatifs à l'application et à son code source sont réservés.
 
 
-# Welcome to the Mes Docs mobile app 👋
+# Welcome to the Azee mobile app 👋
 
 This mobile application is configured for Android operating systems only.
 
 1. Purpose of the application
 
-   *Mes Docs* is a free, personal digital tool for organizing medication intake. The application helps you remember that a medication has been taken, but it does not send any medication intake notifications. It relies on the data you provide, is not a medical device, and is not a substitute for the advice of a healthcare professional.
+   *Azee* is a free, personal digital tool for organizing medication intake. The application helps you remember that a medication has been taken, but it does not send any medication intake notifications. It relies on the data you provide, is not a medical device, and is not a substitute for the advice of a healthcare professional.
 
 
 2. No medical advice

@@ -31,11 +31,11 @@ export default function Layout() {
         headerTitle: () => (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image 
-              source={require('../../assets/images/symbole192-192.png')} 
+              source={require('../../assets/images/icon.png')} 
               style={{ width: 28, height: 28, marginRight: 10, resizeMode: 'contain' }} 
             />
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-              Mes Docs
+              Azee
             </Text>
           </View>
         ),

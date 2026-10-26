@@ -28,7 +28,7 @@ export default function HomeScreen() {
   // charger les medicaments et etats des prises du jour a partir de la bdd
   const loadData = async () => {
     try{
-      const db = getDatabase();
+      const db = await getDatabase();
       // charger les medicaments
       const meds = await db.getAllAsync('SELECT * FROM medications');
       setMedications(meds);
@@ -62,7 +62,7 @@ export default function HomeScreen() {
   const openCalendarModal = async (med) => {
     setSelectedMed(med);
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const allLogs = await db.getAllAsync(
         'SELECT * FROM daily_logs WHERE medication_id = ?',
         [med.id]
@@ -82,6 +82,7 @@ export default function HomeScreen() {
     if (med.take_morning === 1) requiredSlotsCount++;
     if (med.take_noon === 1) requiredSlotsCount++;
     if (med.take_evening === 1) requiredSlotsCount++;
+    if (med.take_night === 1) requiredSlotsCount++;
     const dayLogs = medLogs.filter((l) => l.date === dateStr && l.taken === 1);
     // vert
     if (dayLogs.length === requiredSlotsCount && requiredSlotsCount > 0) {
@@ -106,7 +107,7 @@ export default function HomeScreen() {
           text: 'Supprimer',
           style: 'destructive',
           onPress: async () => {
-            const db = getDatabase();
+            const db = await getDatabase();
             await db.runAsync('DELETE FROM medications WHERE id = ?', [id]);
             await db.runAsync('DELETE FROM daily_logs WHERE medication_id = ?', [id]);
             loadData();
@@ -146,7 +147,7 @@ export default function HomeScreen() {
 
   // executer la modification dans la bdd
   const executeToggle = async (medId, slot, currentStatus) => {
-    const db = getDatabase();
+    const db = await getDatabase();
     const newStatus = !currentStatus;
     await db.runAsync(
       `INSERT INTO daily_logs (medication_id, date, slot, taken) 
@@ -163,7 +164,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.ligne1}>Ton pilulier numérique.</Text>
+      <Text style={styles.ligne1}>Ton pilulier numérique t'aide à te souvenir si tu as pris un médicament.</Text>
       
         {/* Liste des médicaments */}
         {medications.length === 0 ? (
@@ -201,7 +202,7 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-              {/* bloc matin midi soir */}
+              {/* bloc matin midi soir nuit */}
               <View style={styles.slotsRow}>
                 {med.take_morning === 1 && (
                   <SlotCard 
@@ -222,6 +223,13 @@ export default function HomeScreen() {
                     label="Soir" 
                     isTaken={logs[`${med.id}_evening`]} 
                     onPress={() => handleSlotPress(med.id, 'evening', med.name, 'Soir')}                  
+                  />
+                )}
+                {med.take_night === 1 && (
+                  <SlotCard 
+                    label="Nuit" 
+                    isTaken={logs[`${med.id}_night`]} 
+                    onPress={() => handleSlotPress(med.id, 'night', med.name, 'Nuit')}                  
                   />
                 )}
               </View>
@@ -434,7 +442,7 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {/* signature */}
-      <Text style={styles.signature}>v1.0.1 - S. Robin</Text>
+      <Text style={styles.signature}>v1.1.0 - S. Robin</Text>
 
       {/* modal conditions utilisation */}
       <Modal
@@ -450,7 +458,7 @@ export default function HomeScreen() {
             <ScrollView style={{ maxHeight: 350, marginVertical: 12 }}>
               <Text style={styles.termsBodyText}>
                 {"1. Objet de l'application\n"} 
-                <Text style={{ fontStyle: 'italic' }}>Mes Docs</Text>
+                <Text style={{ fontStyle: 'italic' }}>Azee</Text>
                 {" est un outil numérique personnel et gratuit pour l'organisation de la prise de médicaments. L'application aide à se rappeler que la prise de médicaments a été effectuée, mais n'envoie aucune notification de prise de médicaments. Elle se complète avec les données que vous lui fournissez, ne constitue pas un dispositif médical et ne se substitue pas aux conseils d'un professionnel de santé.\n\n" +
                 "2. Absence de conseil médical\n" +
                 "L'application ne fournit aucun avis thérapeutique. Le médecin ou le pharmacien reste l'unique référent pour la posologie et le suivi de vos traitements.\n\n" +
@@ -543,7 +551,7 @@ const styles = StyleSheet.create({
   },
   iconBtn: {
     backgroundColor: '#fff',
-    padding: 6,
+    padding: 8,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -557,7 +565,7 @@ const styles = StyleSheet.create({
   },
   slot: { 
     flex: 1, 
-    padding: 12, 
+    padding: 8, 
     borderRadius: 20, 
     alignItems: 'center' 
   },
@@ -570,7 +578,7 @@ const styles = StyleSheet.create({
   slotText: { 
     color: '#fff', 
     fontWeight: 'bold', 
-    fontSize: 14 
+    fontSize: 14,
   },
   slotStatus: { 
     color: '#fff', 

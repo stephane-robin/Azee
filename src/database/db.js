@@ -16,6 +16,7 @@ export const initDatabase = async () => {
         take_morning INTEGER DEFAULT 0,
         take_noon INTEGER DEFAULT 0,
         take_evening INTEGER DEFAULT 0,
+        take_night INTEGER DEFAULT 0,
         posologie TEXT
       );
     `);
@@ -34,9 +35,9 @@ export const initDatabase = async () => {
   return dbInstance;
 };
 
-export const getDatabase = () => {
+export const getDatabase = async () => {
   if (!dbInstance) {
-    throw new Error("La base de données n'a pas été initialisée. Appelez initDatabase() d'abord.");
+    await initDatabase();
   }
   return dbInstance;
 };

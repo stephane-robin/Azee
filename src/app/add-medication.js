@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, Alert, Switch } from 'react-native';
+import { 
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet, 
+  Text, 
+  View, 
+  ScrollView, 
+  TextInput, 
+  TouchableOpacity, 
+  Alert, 
+  Switch } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useRouter } from 'expo-router';
 import { getDatabase } from '../database/db';
 import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair } from '../constants/colors';
@@ -11,8 +22,8 @@ export default function AddMedicationScreen() {
   const [posologie, setPosologie] = useState('');
   const [morning, setMorning] = useState(true);
   const [noon, setNoon] = useState(false);
-  const [evening] = useState(true);
-  const [eveningState, setEveningState] = useState(true);
+  const [evening, setEvening] = useState(true);
+  const [night, setNight] = useState(false);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -20,24 +31,25 @@ export default function AddMedicationScreen() {
       return;
     }
 
-    if (!morning && !noon && !eveningState) {
+    if (!morning && !noon && !evening) {
       Alert.alert('Erreur', 'Sélectionnez au moins un moment de prise.');
       return;
     }
 
-    const db = getDatabase();
+    const db = await getDatabase();
     const startDate = new Date().toISOString().split('T')[0];
 
     await db.runAsync(
-      `INSERT INTO medications (name, duration_days, start_date, take_morning, take_noon, take_evening, posologie) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO medications (name, duration_days, start_date, take_morning, take_noon, take_evening, take_night, posologie) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name.trim(), 
         parseInt(duration, 10) || 1, 
         startDate, 
         morning ? 1 : 0, 
         noon ? 1 : 0, 
-        eveningState ? 1 : 0,
+        evening ? 1 : 0,
+        night ? 1 : 0,
         posologie.trim()
       ]
     );
@@ -47,73 +59,92 @@ export default function AddMedicationScreen() {
   
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.titre}>Nouveau Médicament</Text>
-      <Text style={styles.label}>Nom du médicament</Text>
-      <View style={styles.inputContainer}>
-        <TextInput 
-            style={styles.input} 
-            placeholder="Ex: Paracétamol" 
-            value={name} 
-            onChangeText={setName} 
-            autoCorrect={false}  
-            spellCheck={false}
-        />
-      </View>
-      <Text style={styles.label}>Durée du traitement (jours)</Text>
-      <View style={styles.inputContainer}>
-        <TextInput 
-            style={styles.input} 
-            keyboardType="numeric" 
-            placeholder="Ex: 7" 
-            value={duration} 
-            onChangeText={setDuration} 
-        />
-      </View>
+    <KeyboardAwareScrollView
+      style={{ flex: 1 }} 
+      keyboardShouldPersistTaps="handled"
+      bottomOffset={50}
+    >
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.scrollContent} 
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.titre}>Nouveau Médicament</Text>
+        <Text style={styles.label}>Nom du médicament</Text>
+        <View style={styles.inputContainer}>
+          <TextInput 
+              style={styles.input} 
+              placeholder="Ex: Paracétamol" 
+              value={name} 
+              onChangeText={setName} 
+              autoCorrect={false}  
+              spellCheck={false}
+          />
+        </View>
+        <Text style={styles.label}>Durée du traitement (jours)</Text>
+        <View style={styles.inputContainer}>
+          <TextInput 
+              style={styles.input} 
+              keyboardType="numeric" 
+              placeholder="Ex: 7" 
+              value={duration} 
+              onChangeText={setDuration} 
+          />
+        </View>
 
-      <Text style={styles.label}>Fréquence de prise</Text>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>Matin</Text>
-        <Switch 
-        value={morning} 
-        onValueChange={setMorning}
-        trackColor={{ false: grisClair, true: grisClair }}
-        thumbColor={morning ? bleuPrincipal : '#f4f3f4'}
-        />
-      </View>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>Midi</Text>
-        <Switch 
-        value={noon} 
-        onValueChange={setNoon}
-        trackColor={{ false: grisClair, true: grisClair }}
-        thumbColor={noon ? bleuPrincipal : '#f4f3f4'}
-        />
-      </View>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>Soir</Text>
-        <Switch 
-        value={eveningState} 
-        onValueChange={setEveningState}
-        trackColor={{ false: grisClair, true: grisClair }}
-        thumbColor={eveningState ? bleuPrincipal : '#f4f3f4'}
-        />
-      </View>
+        <Text style={styles.label}>Fréquence de prise</Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Matin</Text>
+          <Switch 
+          value={morning} 
+          onValueChange={setMorning}
+          trackColor={{ false: grisClair, true: grisClair }}
+          thumbColor={morning ? bleuPrincipal : '#f4f3f4'}
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Midi</Text>
+          <Switch 
+          value={noon} 
+          onValueChange={setNoon}
+          trackColor={{ false: grisClair, true: grisClair }}
+          thumbColor={noon ? bleuPrincipal : '#f4f3f4'}
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Soir</Text>
+          <Switch 
+          value={evening} 
+          onValueChange={setEvening}
+          trackColor={{ false: grisClair, true: grisClair }}
+          thumbColor={evening ? bleuPrincipal : '#f4f3f4'}
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Nuit</Text>
+          <Switch 
+          value={night} 
+          onValueChange={setNight}
+          trackColor={{ false: grisClair, true: grisClair }}
+          thumbColor={night ? bleuPrincipal : '#f4f3f4'}
+          />
+        </View>
 
-      <Text style={styles.label}>Posologie</Text>
-      <View style={styles.inputContainer}>
-        <TextInput 
-            style={styles.input} 
-            placeholder="Ex: Application cutanée." 
-            value={posologie} 
-            onChangeText={setPosologie} 
-        />
-      </View>
+        <Text style={styles.label}>Posologie</Text>
+        <View style={styles.inputContainer}>
+          <TextInput 
+              style={styles.input} 
+              placeholder="Ex: Application cutanée." 
+              value={posologie} 
+              onChangeText={setPosologie} 
+          />
+        </View>
 
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-        <Text style={styles.saveBtnText}>Enregistrer</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+          <Text style={styles.saveBtnText}>Enregistrer</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
@@ -125,7 +156,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: { 
     padding: 16, 
-    paddingBottom: 320
+    paddingBottom: 380
   },
   titre:{
     fontSize: 20,
