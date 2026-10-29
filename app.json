@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "mon-cairn.azee"
+      "package": "com.moncairn.azee"
     },
     "web": {
       "output": "static",

@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getDatabase } from '../database/db';
 import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair, rouge, vert } from '../constants/colors';
+import { getRouteInfoFromState } from 'expo-router/build/global-state/getRouteInfoFromState.js';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -163,7 +164,11 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={styles.scrollContent}
+      >
+      <Text style={styles.titre}>Aujourd'hui</Text>
       <Text style={styles.ligne1}>Ton pilulier numérique t'aide à te souvenir si tu as pris un médicament.</Text>
       
         {/* Liste des médicaments */}
@@ -177,6 +182,38 @@ export default function HomeScreen() {
                 <View style={styles.medNameContainer}>
                   <Text style={styles.medName}>{med.name} ({med.duration_days} jrs)</Text>
                 </View>
+                
+                {/* bloc matin midi soir nuit */}
+                <View style={styles.slotsRow}>
+                  {med.take_morning === 1 && (
+                    <SlotCard 
+                      label="Matin" 
+                      isTaken={logs[`${med.id}_morning`]} 
+                      onPress={() => handleSlotPress(med.id, 'morning', med.name, 'Matin')}                  
+                    />
+                  )}
+                  {med.take_noon === 1 && (
+                    <SlotCard 
+                      label="Midi" 
+                      isTaken={logs[`${med.id}_noon`]} 
+                      onPress={() => handleSlotPress(med.id, 'noon', med.name, 'Midi')}                  
+                    />
+                  )}
+                  {med.take_evening === 1 && (
+                    <SlotCard 
+                      label="Soir" 
+                      isTaken={logs[`${med.id}_evening`]} 
+                      onPress={() => handleSlotPress(med.id, 'evening', med.name, 'Soir')}                  
+                    />
+                  )}
+                  {med.take_night === 1 && (
+                    <SlotCard 
+                      label="Nuit" 
+                      isTaken={logs[`${med.id}_night`]} 
+                      onPress={() => handleSlotPress(med.id, 'night', med.name, 'Nuit')}                  
+                    />
+                  )}
+                </View>
                 {/* groupe de boutons */}
                 <View style={styles.actionButtonsRow}>
                   {/* bouton document */}
@@ -184,54 +221,23 @@ export default function HomeScreen() {
                     onPress={() => openTextModal(med)}
                     style={styles.iconBtn}
                   >
-                    <Ionicons name="document-text-outline" size={20} color={bleuPrincipal} />
+                    <Ionicons name="document-text-outline" size={20} color={grisIntermediaire} />
                   </TouchableOpacity>
                   {/* bouton Calendrier */}
                   <TouchableOpacity 
                     onPress={() => openCalendarModal(med)}
                     style={styles.iconBtn}
                   >
-                    <Ionicons name="calendar-outline" size={20} color={bleuPrincipal} />
+                    <Ionicons name="calendar-number-outline" size={20} color={grisIntermediaire} />
                   </TouchableOpacity>
                   {/* bouton Corbeille */}
                   <TouchableOpacity 
                     onPress={() => deleteMedication(med.id, med.name)}
-                    style={[styles.iconBtn, styles.deleteIconBtn]}
+                    style={styles.iconBtn}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+                    <Ionicons name="trash-outline" size={20} color={grisIntermediaire} />
                   </TouchableOpacity>
                 </View>
-              </View>
-              {/* bloc matin midi soir nuit */}
-              <View style={styles.slotsRow}>
-                {med.take_morning === 1 && (
-                  <SlotCard 
-                    label="Matin" 
-                    isTaken={logs[`${med.id}_morning`]} 
-                    onPress={() => handleSlotPress(med.id, 'morning', med.name, 'Matin')}                  
-                  />
-                )}
-                {med.take_noon === 1 && (
-                  <SlotCard 
-                    label="Midi" 
-                    isTaken={logs[`${med.id}_noon`]} 
-                    onPress={() => handleSlotPress(med.id, 'noon', med.name, 'Midi')}                  
-                  />
-                )}
-                {med.take_evening === 1 && (
-                  <SlotCard 
-                    label="Soir" 
-                    isTaken={logs[`${med.id}_evening`]} 
-                    onPress={() => handleSlotPress(med.id, 'evening', med.name, 'Soir')}                  
-                  />
-                )}
-                {med.take_night === 1 && (
-                  <SlotCard 
-                    label="Nuit" 
-                    isTaken={logs[`${med.id}_night`]} 
-                    onPress={() => handleSlotPress(med.id, 'night', med.name, 'Nuit')}                  
-                  />
-                )}
               </View>
             </View>
           ))
@@ -433,6 +439,16 @@ export default function HomeScreen() {
       {/* heure */}
       <Text style={styles.timeText}>{now.toLocaleTimeString('fr-FR')}</Text>
 
+
+      <TouchableOpacity onPress={() => router.push('/add-medication')}>
+        <Ionicons name="add-circle-outline" size={20} color={grisIntermediaire} />
+      </TouchableOpacity>
+
+            
+            <Ionicons name="shield-checkmark-outline" size={20} color={grisIntermediaire} />
+            <Ionicons name="time-outline" size={20} color={grisIntermediaire} />
+            <Ionicons name="home" size={20} color={grisIntermediaire} />
+
       {/* lien Conditions d'utilisation */}
       <TouchableOpacity 
         onPress={() => openConditionsModal()}
@@ -504,11 +520,20 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     padding:10,
+    paddingTop:20,
     backgroundColor: couleurFond, 
+
   },
   scrollContent: { 
     padding: 16, 
     paddingBottom: 80
+  },
+  titre:{
+    color:bleuPrincipal,
+    fontWeight: '700',
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop:8
   },
   ligne1: { 
     textAlign: 'center', 
@@ -533,7 +558,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column', 
     justifyContent: 'space-between', 
     alignItems: 'flex-start', 
-    marginBottom: 10 },
+    marginBottom: 0 },
   medNameContainer: {
     flex: 1,                  
     marginRight: 10,          
@@ -548,24 +573,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop:6,
     gap: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width:'100%'
   },
   iconBtn: {
-    backgroundColor: '#fff',
     padding: 8,
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteIconBtn: {
-    backgroundColor: '#fff',
-  },
   slotsRow: { 
     flexDirection: 'row', 
-    gap: 8 
+    gap: 8,
+    marginTop:6
   },
   slot: { 
     flex: 1, 
-    padding: 8, 
+    padding: 4, 
     borderRadius: 20, 
     alignItems: 'center' 
   },

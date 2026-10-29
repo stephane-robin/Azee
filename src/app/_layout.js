@@ -24,21 +24,8 @@ export default function Layout() {
   return (
     <Stack
       screenOptions={{
+        headerShown: false,                             
         contentStyle: { backgroundColor: couleurFond }, 
-        headerStyle: { backgroundColor: bleuPrincipal },  
-        headerTintColor: '#fff',                   
-        headerTitleAlign: 'center',
-        headerTitle: () => (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image 
-              source={require('../../assets/images/icon.png')} 
-              style={{ width: 28, height: 28, marginRight: 10, resizeMode: 'contain' }} 
-            />
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-              Azee
-            </Text>
-          </View>
-        ),
       }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="add-medication" options={{ presentation: 'modal'}} />

@@ -1,9 +1,9 @@
 export const couleurFond = '#f4f4f8';
 export const bleuPrincipal = '#6bc4f0';
-export const bleuSecondaire = '#d0e4ee';
+export const bleuSecondaire = 'rgba(208, 228, 238, 0.5)';//'#d0e4eeb7';
 export const transparent = '#00000066';
 export const grisIntermediaire = '#8e8e93';
 export const grisSombre = '#3a3a3c';
 export const grisClair = '#c7c7cc';
-export const rouge = '#ff4d4d';
-export const vert = '#2ecc71';
+export const rouge = 'rgba(255, 77, 77, 0.76)';//'#ff4d4d';
+export const vert = 'rgba(46, 204, 112, 0.75)';//'#2ecc71';

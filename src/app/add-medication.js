@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet, 
   Text, 
   View, 
@@ -11,6 +9,7 @@ import {
   Alert, 
   Switch } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getDatabase } from '../database/db';
 import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair } from '../constants/colors';
@@ -69,7 +68,12 @@ export default function AddMedicationScreen() {
         contentContainerStyle={styles.scrollContent} 
         keyboardShouldPersistTaps="handled"
       >
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+  <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+    <Ionicons name="arrow-undo-outline" size={24} color={bleuPrincipal} />
+  </TouchableOpacity>
         <Text style={styles.titre}>Nouveau Médicament</Text>
+        </View>
         <Text style={styles.label}>Nom du médicament</Text>
         <View style={styles.inputContainer}>
           <TextInput 
@@ -143,6 +147,10 @@ export default function AddMedicationScreen() {
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveBtnText}>Enregistrer</Text>
         </TouchableOpacity>
+
+        <Ionicons name="shield-checkmark-outline" size={20} color={grisIntermediaire} />
+            <Ionicons name="time-outline" size={20} color={grisIntermediaire} />
+            <Ionicons name="home-outline" size={20} color={grisIntermediaire} />
       </ScrollView>
     </KeyboardAwareScrollView>
   );
