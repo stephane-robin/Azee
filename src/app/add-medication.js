@@ -30,7 +30,7 @@ export default function AddMedicationScreen() {
       return;
     }
 
-    if (!morning && !noon && !evening) {
+    if (!morning && !noon && !evening && !night) {
       Alert.alert('Erreur', 'Sélectionnez au moins un moment de prise.');
       return;
     }
@@ -69,10 +69,10 @@ export default function AddMedicationScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-  <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-    <Ionicons name="arrow-undo-outline" size={24} color={bleuPrincipal} />
-  </TouchableOpacity>
-        <Text style={styles.titre}>Nouveau Médicament</Text>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back-outline" size={24} color={bleuPrincipal} />
+          </TouchableOpacity>
+          <Text style={styles.titre}>Nouveau Médicament</Text>
         </View>
         <Text style={styles.label}>Nom du médicament</Text>
         <View style={styles.inputContainer}>
@@ -148,9 +148,22 @@ export default function AddMedicationScreen() {
           <Text style={styles.saveBtnText}>Enregistrer</Text>
         </TouchableOpacity>
 
-        <Ionicons name="shield-checkmark-outline" size={20} color={grisIntermediaire} />
-            <Ionicons name="time-outline" size={20} color={grisIntermediaire} />
-            <Ionicons name="home-outline" size={20} color={grisIntermediaire} />
+        {/* menu bas de page */}
+      <View style={styles.menuContainer}>
+        <View style={styles.menu}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="home-outline" style={styles.icone}/>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/add-medication')}>
+            <Ionicons name="add-circle-outline" style={styles.icone}/>
+          </TouchableOpacity>
+          <Ionicons name="time-outline" style={styles.icone}/>
+          <TouchableOpacity onPress={() => openConditionsModal()}>
+            <Ionicons name="shield-checkmark-outline" style={styles.icone}/>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       </ScrollView>
     </KeyboardAwareScrollView>
   );
@@ -166,11 +179,15 @@ const styles = StyleSheet.create({
     padding: 16, 
     paddingBottom: 380
   },
-  titre:{
-    fontSize: 20,
+titre:{
+    color:bleuPrincipal,
     fontWeight: '600',
-    color: bleuPrincipal,
-    textAlign: 'center'
+    fontSize: 22,
+    textAlign: 'center',
+    justifyContent:'center',
+    width:'100%',
+    marginTop:10,
+    marginBottom:10
   },
   label: { 
     fontSize: 16, 
@@ -218,5 +235,24 @@ const styles = StyleSheet.create({
     color: '#fff', 
     fontSize: 16, 
     fontWeight: 'bold' 
-  }
+  },
+    menu: {
+    flexDirection: 'row',
+    backgroundColor:'white',
+    borderRadius:20,
+    marginTop:6,
+    marginBottom:8,
+    padding:4,
+    gap: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width:'60%'
+  },
+  menuContainer:{
+    alignItems:'center'
+  },
+  icone:{
+    fontSize:25,
+    color:grisIntermediaire
+  },
 });

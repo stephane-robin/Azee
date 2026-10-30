@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Modal, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getDatabase } from '../database/db';
 import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair, rouge, vert } from '../constants/colors';
-import { getRouteInfoFromState } from 'expo-router/build/global-state/getRouteInfoFromState.js';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -17,16 +16,21 @@ export default function HomeScreen() {
   const [isPosologyModalVisible, setIsPosologyModalVisible] = useState(false);
   const [isTermsModalVisible, setIsTermsModalVisible] = useState(true);
 
-  // date d'aujourd'hui
+  /* === DATE D'AUJOURD'HUI === */
   const dateString = now.toISOString().split('T')[0];
+  const [year, month, day] = dateString.split('-');
+  const localDate = new Date(year, month - 1, day);
+  const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  let formattedDate = localDate.toLocaleDateString('fr-FR', options);
+  formattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
   
-  // horloge en temps réel
+  /* === HORLOGE EN TEMPS REEL === */
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
   
-  // charger les medicaments et etats des prises du jour a partir de la bdd
+  /* === CHARGER LES MEDICAMENTS ET ETATS DES PRISES DE JOUR A PARTIR DE LA BDD === */
   const loadData = async () => {
     try{
       const db = await getDatabase();
@@ -53,13 +57,7 @@ export default function HomeScreen() {
     }, [dateString])
   );
 
-  // ouvrir le modal de la posologie
-  const openTextModal = (med) => {
-    setSelectedMed(med);
-    setIsPosologyModalVisible(true);
-  };
-
-  // charger tous les etats d'un medicament specifique
+  /* === CHARGER TOUS LES ETATS D'UN MEDICAMENT === */
   const openCalendarModal = async (med) => {
     setSelectedMed(med);
     try {
@@ -75,7 +73,18 @@ export default function HomeScreen() {
     }
   };
 
-  // calcul du statut global d'une journee pour un medicament specifique et pour le calendrier pop-up
+  /* === OUVRIR LE MODAL DE LA POSOLOGIE D'UN MEDICAMENT === */
+  const openTextModal = (med) => {
+    setSelectedMed(med);
+    setIsPosologyModalVisible(true);
+  };
+
+  /* === OUVRIR LE MODAL DES CONDITIONS === */
+  const openConditionsModal = () => {
+    setIsTermsModalVisible(true);
+  };
+
+  /* === CALCUL DU STATUT GLOBAL D'UNE JOURNEE POUR UN MEDICAMENT === */
   const getDayStatus = (dateStr, med) => {
     const today = new Date().toISOString().split('T')[0];
     // determiner combien de creneaux sont requis par jour
@@ -97,7 +106,7 @@ export default function HomeScreen() {
     return 'upcoming'; 
   };
 
-  // supprimer un medicament de la bdd
+  /* === SUPPRIMER UN MEDICAMENT DE LA BDD === */
   const deleteMedication = async (id, name) => {
     Alert.alert(
       'Supprimer le médicament',
@@ -117,20 +126,15 @@ export default function HomeScreen() {
       ]
     );
   };
-
-  // ouvrir le modal des conditions
-  const openConditionsModal = () => {
-    setIsTermsModalVisible(true);
-  };
   
-  // basculer l'etat de la prise d'un medicament (rouge <-> vert)
+  /* === BASCULER L'ETAT DE LA PRISE D'UN MEDICAMENT (ROUGE VERT) === */ 
   const handleSlotPress = (medId, slot, medName, slotLabel) => {
     const currentStatus = logs[`${medId}_${slot}`] || false;
     if (currentStatus) {
       // si la prise du medicament est verte, on demande confirmation avant de le passe a rouge
       Alert.alert(
         'Modifier le statut',
-        `Voulez-vous vraiment marquer la prise "${slotLabel}" de ${medName} comme "Non prise" ?`,
+        `Voulez-vous vraiment marquer la prise "${slotLabel}" de ${medName} comme "non prise" ?`,
         [
           { text: 'Annuler', style: 'cancel' },
           {
@@ -146,7 +150,7 @@ export default function HomeScreen() {
     }
   };
 
-  // executer la modification dans la bdd
+  /* === EXECUTER LA MODIFICATION DANS LA BDD === */
   const executeToggle = async (medId, slot, currentStatus) => {
     const db = await getDatabase();
     const newStatus = !currentStatus;
@@ -169,14 +173,21 @@ export default function HomeScreen() {
       contentContainerStyle={styles.scrollContent}
       >
       <Text style={styles.titre}>Aujourd'hui</Text>
-      <Text style={styles.ligne1}>Ton pilulier numérique t'aide à te souvenir si tu as pris un médicament.</Text>
+      <Text style={styles.ligne1}>Ton pilulier numérique t'aide à te souvenir si tu as pris un médicament aujourd'hui.</Text>
       
+      {/* Ajout de l'image */}
+<Image 
+  source={require('../../assets/images/oubli2.jpg')} 
+  style={styles.illustration} 
+  resizeMode="contain"
+/>
+
         {/* Liste des médicaments */}
         {medications.length === 0 ? (
           <Text style={styles.emptyText}>Aucun médicament enregistré.</Text>
         ) : (
           medications.map((med) => (
-            // carte d'un medicament
+            /* carte d'un medicament */
             <View key={med.id} style={styles.medCard}>     
               <View style={styles.medHeader}>
                 <View style={styles.medNameContainer}>
@@ -185,35 +196,32 @@ export default function HomeScreen() {
                 
                 {/* bloc matin midi soir nuit */}
                 <View style={styles.slotsRow}>
-                  {med.take_morning === 1 && (
                     <SlotCard 
                       label="Matin" 
+                      isEnabled={med.take_morning === 1}
                       isTaken={logs[`${med.id}_morning`]} 
                       onPress={() => handleSlotPress(med.id, 'morning', med.name, 'Matin')}                  
                     />
-                  )}
-                  {med.take_noon === 1 && (
                     <SlotCard 
                       label="Midi" 
+                      isEnabled={med.take_noon === 1}
                       isTaken={logs[`${med.id}_noon`]} 
                       onPress={() => handleSlotPress(med.id, 'noon', med.name, 'Midi')}                  
                     />
-                  )}
-                  {med.take_evening === 1 && (
                     <SlotCard 
                       label="Soir" 
+                      isEnabled={med.take_evening === 1}
                       isTaken={logs[`${med.id}_evening`]} 
                       onPress={() => handleSlotPress(med.id, 'evening', med.name, 'Soir')}                  
                     />
-                  )}
-                  {med.take_night === 1 && (
                     <SlotCard 
                       label="Nuit" 
+                      isEnabled={med.take_night === 1}
                       isTaken={logs[`${med.id}_night`]} 
                       onPress={() => handleSlotPress(med.id, 'night', med.name, 'Nuit')}                  
                     />
-                  )}
                 </View>
+
                 {/* groupe de boutons */}
                 <View style={styles.actionButtonsRow}>
                   {/* bouton document */}
@@ -221,21 +229,21 @@ export default function HomeScreen() {
                     onPress={() => openTextModal(med)}
                     style={styles.iconBtn}
                   >
-                    <Ionicons name="document-text-outline" size={20} color={grisIntermediaire} />
+                    <Ionicons name="document-text-outline" style={styles.icone}/>
                   </TouchableOpacity>
                   {/* bouton Calendrier */}
                   <TouchableOpacity 
                     onPress={() => openCalendarModal(med)}
                     style={styles.iconBtn}
                   >
-                    <Ionicons name="calendar-number-outline" size={20} color={grisIntermediaire} />
+                    <Ionicons name="calendar-number-outline" style={styles.icone}/>
                   </TouchableOpacity>
                   {/* bouton Corbeille */}
                   <TouchableOpacity 
                     onPress={() => deleteMedication(med.id, med.name)}
                     style={styles.iconBtn}
                   >
-                    <Ionicons name="trash-outline" size={20} color={grisIntermediaire} />
+                    <Ionicons name="trash-outline" style={styles.icone} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -243,15 +251,99 @@ export default function HomeScreen() {
           ))
         )}
 
-        {/* bouton d'enregistrement */}
-        <TouchableOpacity 
-          style={styles.addBtn} 
-          onPress={() => router.push('/add-medication')}
-        >
-          <Text style={styles.addBtnText}>+ Nouveau médicament</Text>
-        </TouchableOpacity>
+      {/* === DATE HEURE === */}
+      <Text style={styles.date}>
+        {formattedDate}
+      </Text>
+      <Text style={styles.timeText}>{now.toLocaleTimeString('fr-FR')}</Text>
 
-      {/* calendrier pop-up */}
+      {/* === MENU BAS DE PAGE === */}
+      <View style={styles.menuContainer}>
+        <View style={styles.menu}>
+          <Ionicons name="home" style={styles.icone}/>
+          <TouchableOpacity onPress={() => router.push('/add-medication')}>
+            <Ionicons name="add-circle-outline" style={styles.icone}/>
+          </TouchableOpacity>
+          <Ionicons name="time-outline" style={styles.icone}/>
+          <TouchableOpacity onPress={() => openConditionsModal()}>
+            <Ionicons name="shield-checkmark-outline" style={styles.icone}/>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* === MODAL POSOLOGIE === */}
+      <Modal
+        visible={isPosologyModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsPosologyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{selectedMed?.name}</Text>
+            <Text style={styles.modalSubtitle}>Posologie</Text>
+
+            {/* Texte de la posologie */}
+            <View style={styles.posologyBox}>
+              <Text style={styles.posologyText}>
+                {selectedMed?.posologie && selectedMed.posologie.trim() !== "" 
+                  ? selectedMed.posologie 
+                  : "Aucune posologie renseignée."}
+              </Text>
+            </View>
+
+            {/* bouton Fermer */}
+            <TouchableOpacity 
+              style={styles.closeModalBtn} 
+              onPress={() => setIsPosologyModalVisible(false)}
+            >
+              <Text style={styles.closeModalBtnText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* === MODAL CONDITIONS UTILISATION === */}
+      <Modal
+        visible={isTermsModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsTermsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Conditions d'utilisation</Text>
+            
+            <ScrollView style={{ maxHeight: 350, marginVertical: 12 }}>
+              <Text style={styles.termsBodyText}>
+                {"1. Objet de l'application\n"} 
+                <Text style={{ fontStyle: 'italic' }}>Azee</Text>
+                {" est un outil numérique personnel et gratuit pour l'organisation de la prise de médicaments. L'application aide à se rappeler que la prise de médicaments a été effectuée, mais n'envoie aucune notification de prise de médicaments. Elle se complète avec les données que vous lui fournissez, ne constitue pas un dispositif médical et ne se substitue pas aux conseils d'un professionnel de santé.\n\n" +
+                "2. Absence de conseil médical\n" +
+                "L'application ne fournit aucun avis thérapeutique. Le médecin ou le pharmacien reste l'unique référent pour la posologie et le suivi de vos traitements.\n\n" +
+                "3. Limitation de responsabilité\n" +
+                "L'auteur ne peut être tenu responsable d'une erreur de posologie, d'une mauvaise utilisation de la plateforme ou d'un oubli de traitement lié à une défaillance technique, un arrêt de l'application ou un problème de notification.\n\n" +
+                "4. Conseils d'utilisation\n" +
+                "Au démarrage aucun médicament n'est enregistré. Appuyez sur \"+ Nouveau médicament\" pour rajouter un médicament. Le nom du médicament ainsi que la durée du traitement doivent être renseignés. La fréquence de prise est réglée par défaut au matin et soir mais peut être modifiée. Le détail de la posologie est facultatif. Il faut appuyer sur \"Enregistrer\" pour que les données soient sauvegardées sur le téléphone, puis qu'elles apparaissent sur la page d'accueil de l'application. Il est alors possible d'afficher le calendrier de traitement, le détail de la posologie ou de supprimer le médicament concerné. Lors d'une prise de médicament, le fait de cliquer sur un bouton rouge marqué \"Non pris\" transforme le bouton en vert marqué \"Pris\".\n\n" +
+                "5. Données personnelles\n" +
+                "Vos données ne sont ni collectées ni partagées. Elles sont stockées exclusivement et localement sur votre appareil.\n\n" +
+                "6. Propriété intellectuelle\n" +
+                "Tous les droits relatifs à l'application et à son code source sont réservés.\n\n" +
+                "Azee v1.1.0 / S. Robin"}
+              </Text>
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={styles.closeModalBtn} 
+              onPress={() => setIsTermsModalVisible(false)}
+            >
+              <Text style={styles.closeModalBtnText}>J'ai compris</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* === MODAL CALENDRIER === */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -355,162 +447,27 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* Modal Posologie */}
-      <Modal
-        visible={isPosologyModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setIsPosologyModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{selectedMed?.name}</Text>
-            <Text style={styles.modalSubtitle}>Posologie</Text>
-
-            {/* Texte de la posologie */}
-            <View style={styles.posologyBox}>
-              <Text style={styles.posologyText}>
-                {selectedMed?.posologie && selectedMed.posologie.trim() !== "" 
-                  ? selectedMed.posologie 
-                  : "Aucune posologie renseignée."}
-              </Text>
-            </View>
-
-            {/* Bouton Fermer */}
-            <TouchableOpacity 
-              style={styles.closeModalBtn} 
-              onPress={() => setIsPosologyModalVisible(false)}
-            >
-              <Text style={styles.closeModalBtnText}>Fermer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* calendrier bas de page */}
-      <View style={styles.calendarContainer}>
-        {/* en-tete du calendrier avec mois et annee */}
-        <Text style={styles.calendarTitle}>
-          {now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-        </Text>
-        {/* Jours de la semaine */}
-        <View style={styles.weekHeaderRow}>
-          {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, idx) => (
-            <Text key={idx} style={styles.weekHeaderLabel}>
-              {day}
-            </Text>
-          ))}
-        </View>
-        {/* grille des jours du mois */}
-        <View style={styles.monthGrid}>
-          {(() => {
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            // nombre de jours dans le mois
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            // premier jour du mois (0 = Dimanche par defaut)
-            // et ajustement pour faire commencer la semaine le lundi = 0
-            const firstDay = new Date(year, month, 1).getDay();
-            const startingPadding = (firstDay + 6) % 7;
-            // cases vides precedant le 1er du mois
-            const gridCells = [];
-            for (let i = 0; i < startingPadding; i++) {
-              gridCells.push(<View key={`empty-${i}`} style={styles.dayBox} />);
-            }
-            // cases pour chaque jour du mois
-            for (let day = 1; day <= daysInMonth; day++) {
-              const isToday =
-                day === now.getDate() &&
-                month === new Date().getMonth() &&
-                year === new Date().getFullYear();
-              gridCells.push(
-                <View key={day} style={[styles.dayBox, isToday && styles.todayBox]}>
-                  <Text style={[styles.dayNum, isToday && styles.todayText]}>
-                    {day}
-                  </Text>
-                </View>
-              );
-            }
-            return gridCells;
-          })()}
-        </View>
-      </View>
-
-      {/* heure */}
-      <Text style={styles.timeText}>{now.toLocaleTimeString('fr-FR')}</Text>
-
-
-      <TouchableOpacity onPress={() => router.push('/add-medication')}>
-        <Ionicons name="add-circle-outline" size={20} color={grisIntermediaire} />
-      </TouchableOpacity>
-
-            
-            <Ionicons name="shield-checkmark-outline" size={20} color={grisIntermediaire} />
-            <Ionicons name="time-outline" size={20} color={grisIntermediaire} />
-            <Ionicons name="home" size={20} color={grisIntermediaire} />
-
-      {/* lien Conditions d'utilisation */}
-      <TouchableOpacity 
-        onPress={() => openConditionsModal()}
-        style={styles.termsContainer}
-      >
-        <Text style={styles.termsText}>Conditions d'utilisation</Text>
-      </TouchableOpacity>
-
-      {/* signature */}
-      <Text style={styles.signature}>v1.1.0 - S. Robin</Text>
-
-      {/* modal conditions utilisation */}
-      <Modal
-        visible={isTermsModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsTermsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Conditions d'utilisation</Text>
-            
-            <ScrollView style={{ maxHeight: 350, marginVertical: 12 }}>
-              <Text style={styles.termsBodyText}>
-                {"1. Objet de l'application\n"} 
-                <Text style={{ fontStyle: 'italic' }}>Azee</Text>
-                {" est un outil numérique personnel et gratuit pour l'organisation de la prise de médicaments. L'application aide à se rappeler que la prise de médicaments a été effectuée, mais n'envoie aucune notification de prise de médicaments. Elle se complète avec les données que vous lui fournissez, ne constitue pas un dispositif médical et ne se substitue pas aux conseils d'un professionnel de santé.\n\n" +
-                "2. Absence de conseil médical\n" +
-                "L'application ne fournit aucun avis thérapeutique. Le médecin ou le pharmacien reste l'unique référent pour la posologie et le suivi de vos traitements.\n\n" +
-                "3. Limitation de responsabilité\n" +
-                "L'auteur ne peut être tenu responsable d'une erreur de posologie, d'une mauvaise utilisation de la plateforme ou d'un oubli de traitement lié à une défaillance technique, un arrêt de l'application ou un problème de notification.\n\n" +
-                "4. Conseils d'utilisation\n" +
-                "Au démarrage aucun médicament n'est enregistré. Appuyez sur \"+ Nouveau médicament\" pour rajouter un médicament. Le nom du médicament ainsi que la durée du traitement doivent être renseignés. La fréquence de prise est réglée par défaut au matin et soir mais peut être modifiée. Le détail de la posologie est facultatif. Il faut appuyer sur \"Enregistrer\" pour que les données soient sauvegardées sur le téléphone, puis qu'elles apparaissent sur la page d'accueil de l'application. Il est alors possible d'afficher le calendrier de traitement, le détail de la posologie ou de supprimer le médicament concerné. Lors d'une prise de médicament, le fait de cliquer sur un bouton rouge marqué \"Non pris\" transforme le bouton en vert marqué \"Pris\".\n\n" +
-                "5. Données personnelles\n" +
-                "Vos données ne sont ni collectées ni partagées. Elles sont stockées exclusivement et localement sur votre appareil.\n\n" +
-                "6. Propriété intellectuelle\n" +
-                "Tous les droits relatifs à l'application et à son code source sont réservés."}
-              </Text>
-            </ScrollView>
-
-            <TouchableOpacity 
-              style={styles.closeModalBtn} 
-              onPress={() => setIsTermsModalVisible(false)}
-            >
-              <Text style={styles.closeModalBtnText}>J'ai compris</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
     </ScrollView>
   );
 }
 
 // composant pour chaque moment de prise
-function SlotCard({ label, isTaken, onPress }) {
+function SlotCard({ label, isEnabled, isTaken, onPress }) {
+  if (!isEnabled) {
+    return (
+      <View style={[styles.slot, styles.slotGray]} pointerEvents="none">
+        <Text style={[styles.slotText, { color: grisIntermediaire }]}>{label}</Text>
+        <Text style={[styles.slotStatus, { color: grisIntermediaire }]}>inactif</Text>
+      </View>
+    );
+  }
   return (
     <TouchableOpacity 
       style={[styles.slot, isTaken ? styles.slotGreen : styles.slotRed]} 
-      onPress={onPress}>
+      onPress={onPress}
+    >
       <Text style={styles.slotText}>{label}</Text>
-      <Text style={styles.slotStatus}>{isTaken ? 'Pris' : 'Non pris'}</Text>
+      <Text style={styles.slotStatus}>{isTaken ? 'pris' : 'non pris'}</Text>
     </TouchableOpacity>
   );
 }
@@ -530,10 +487,11 @@ const styles = StyleSheet.create({
   },
   titre:{
     color:bleuPrincipal,
-    fontWeight: '700',
-    fontSize: 18,
+    fontWeight: '600',
+    fontSize: 22,
     textAlign: 'center',
-    marginTop:8
+    marginTop:10,
+    marginBottom:10
   },
   ligne1: { 
     textAlign: 'center', 
@@ -572,7 +530,7 @@ const styles = StyleSheet.create({
   actionButtonsRow: {
     flexDirection: 'row',
     marginTop:6,
-    gap: 6,
+    gap: 4,
     alignItems: 'center',
     justifyContent: 'center',
     width:'100%'
@@ -585,7 +543,7 @@ const styles = StyleSheet.create({
   slotsRow: { 
     flexDirection: 'row', 
     gap: 8,
-    marginTop:6
+    marginTop:10
   },
   slot: { 
     flex: 1, 
@@ -599,6 +557,9 @@ const styles = StyleSheet.create({
   slotGreen: { 
     backgroundColor:  vert
   },
+  slotgray:{
+    backgroundColor: grisClair
+  },
   slotText: { 
     color: '#fff', 
     fontWeight: 'bold', 
@@ -608,34 +569,6 @@ const styles = StyleSheet.create({
     color: '#fff', 
     fontSize: 11, 
     marginTop: 2 
-  },
-  addBtn: { 
-    backgroundColor: bleuPrincipal, 
-    padding: 14, 
-    borderRadius: 25, 
-    alignItems: 'center', 
-    marginVertical: 10 
-  },
-  addBtnText: { 
-    color: '#fff', 
-    fontWeight: 'bold', 
-    fontSize: 16 
-  },
-  termsContainer: {
-    alignItems: 'center',
-    marginTop: 14,
-    marginBottom: 10,
-  },
-  termsText: {
-    color: grisIntermediaire,
-    fontSize: 12,
-    textDecorationLine: 'underline',
-  },
-  signature:{
-    textAlign: 'center',
-    color: grisIntermediaire,
-    fontSize: 12,
-    marginBottom: 20
   },
   calendarContainer: { 
     backgroundColor: '#fff', 
@@ -686,14 +619,47 @@ const styles = StyleSheet.create({
     color: '#fff', 
     fontWeight: 'bold' 
   },  
-  
-  timeText: { 
-    textAlign: 'center', 
+  menu: {
+    flexDirection: 'row',
+    backgroundColor:'white',
+    borderRadius:20,
+    marginTop:6,
+    marginBottom:8,
+    padding:4,
+    gap: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width:'60%'
+  },
+  menuContainer:{
+    alignItems:'center'
+  },
+  icone:{
+    fontSize:25,
+    color:grisIntermediaire
+  },
+  date:{
     fontSize: 18, 
-    fontWeight: 'bold', 
-    color: bleuPrincipal, 
+    fontWeight:600,
+    color: grisIntermediaire,
+    textAlign:'center',
+    justifyContent:'center',
+    marginTop:6
+  },
+    timeText: { 
+    fontSize: 18, 
+    fontWeight: 600, 
+    color: grisIntermediaire, 
+    textAlign: 'center', 
+    justifyContent:'center',
     marginTop: 10 ,
     marginBottom: 20
+  },
+  illustration: {
+    width: '100%',
+    height: 150, // Ajustez la hauteur selon vos besoins
+    resizeMode: 'contain',
+    marginBottom: 12,
   },
 
   // Modal calendrier pop-up
