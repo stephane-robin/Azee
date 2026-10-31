@@ -56,7 +56,6 @@ export default function AddMedicationScreen() {
     router.back();
   };
   
-
   return (
     <KeyboardAwareScrollView
       style={{ flex: 1 }} 
@@ -68,7 +67,7 @@ export default function AddMedicationScreen() {
         contentContainerStyle={styles.scrollContent} 
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent:'center', marginTop:14, marginBottom: 16, gap:10 }}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back-outline" size={24} color={bleuPrincipal} />
           </TouchableOpacity>
@@ -149,20 +148,21 @@ export default function AddMedicationScreen() {
         </TouchableOpacity>
 
         {/* menu bas de page */}
-      <View style={styles.menuContainer}>
-        <View style={styles.menu}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="home-outline" style={styles.icone}/>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/add-medication')}>
-            <Ionicons name="add-circle-outline" style={styles.icone}/>
-          </TouchableOpacity>
-          <Ionicons name="time-outline" style={styles.icone}/>
-          <TouchableOpacity onPress={() => openConditionsModal()}>
-            <Ionicons name="shield-checkmark-outline" style={styles.icone}/>
-          </TouchableOpacity>
+        <View style={styles.menuContainer}>
+          <View style={styles.menu}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="home-outline" style={styles.icone}/>
+            </TouchableOpacity>
+            <Ionicons name="add-circle" style={styles.icone}/>
+            <TouchableOpacity onPress={() => openHistoryModal()}>
+              <Ionicons name="time-outline" style={styles.icone}/>
+            </TouchableOpacity>
+            <Ionicons name="calendar-number-outline" style={styles.icone}/>
+            <TouchableOpacity onPress={() => openConditionsModal()}>
+              <Ionicons name="shield-checkmark-outline" style={styles.icone}/>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
       </ScrollView>
     </KeyboardAwareScrollView>
@@ -177,17 +177,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: { 
     padding: 16, 
-    paddingBottom: 380
+    paddingBottom: 80
   },
-titre:{
+  titre:{
     color:bleuPrincipal,
     fontWeight: '600',
     fontSize: 22,
-    textAlign: 'center',
-    justifyContent:'center',
-    width:'100%',
-    marginTop:10,
-    marginBottom:10
   },
   label: { 
     fontSize: 16, 
@@ -229,24 +224,24 @@ titre:{
     padding: 14, 
     borderRadius: 25, 
     alignItems: 'center', 
-    marginTop: 22 
+    marginTop: 22,
+    marginBottom: 22 
   },
   saveBtnText: { 
     color: '#fff', 
     fontSize: 16, 
     fontWeight: 'bold' 
   },
-    menu: {
+  menu: {
     flexDirection: 'row',
     backgroundColor:'white',
     borderRadius:20,
     marginTop:6,
-    marginBottom:8,
     padding:4,
     gap: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    width:'60%'
+    width:'80%'
   },
   menuContainer:{
     alignItems:'center'

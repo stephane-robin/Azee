@@ -15,6 +15,8 @@ export default function HomeScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPosologyModalVisible, setIsPosologyModalVisible] = useState(false);
   const [isTermsModalVisible, setIsTermsModalVisible] = useState(true);
+  const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
+  const [allMedicationsHistory, setAllMedicationsHistory] = useState([]);
 
   /* === DATE D'AUJOURD'HUI === */
   const dateString = now.toISOString().split('T')[0];
@@ -167,26 +169,62 @@ export default function HomeScreen() {
     }));
   };
 
+  // Fonction pour vérifier si un traitement est actif aujourd'hui
+  const isMedicationActive = (med) => {
+    if (!med.start_date || !med.duration_days) return true; // Sécurité si les champs sont absents
+
+    // Date de début
+    const [sYear, sMonth, sDay] = med.start_date.split('-').map(Number);
+    const start = new Date(sYear, sMonth - 1, sDay);
+
+    // Date de fin (Date de début + durée - 1 jour)
+    const end = new Date(start);
+    end.setDate(end.getDate() + med.duration_days - 1);
+
+    // Date d'aujourd'hui
+    const [tYear, tMonth, tDay] = dateString.split('-').map(Number);
+    const today = new Date(tYear, tMonth - 1, tDay);
+
+    // Le médicament est actif si aujourd'hui est entre le début et la fin (inclus)
+    return today >= start && today <= end;
+  };
+
+  // Liste filtrée des médicaments en cours
+  const activeMedications = medications.filter(isMedicationActive);
+
+  // Ouvrir le modal de l'historique de tous les médicaments
+  const openHistoryModal = async () => {
+    try {
+      const db = await getDatabase();
+      // Récupère absolument tous les médicaments sans filtre de date
+      const meds = await db.getAllAsync('SELECT * FROM medications ORDER BY start_date DESC');
+      setAllMedicationsHistory(meds);
+      setIsHistoryModalVisible(true);
+    } catch (error) {
+      console.error("Erreur lors du chargement de l'historique des médicaments:", error);
+    }
+  };
+
   return (
     <ScrollView 
       style={styles.container} 
       contentContainerStyle={styles.scrollContent}
       >
       <Text style={styles.titre}>Aujourd'hui</Text>
-      <Text style={styles.ligne1}>Ton pilulier numérique t'aide à te souvenir si tu as pris un médicament aujourd'hui.</Text>
+      <Text style={styles.ligne1}>Ton pilulier numérique t'aide à te souvenir si tu as pris tes médicaments aujourd'hui.</Text>
       
       {/* Ajout de l'image */}
-<Image 
-  source={require('../../assets/images/oubli2.jpg')} 
-  style={styles.illustration} 
-  resizeMode="contain"
-/>
+      <Image 
+        source={require('../../assets/images/oubli2.jpg')} 
+        style={styles.illustration} 
+        resizeMode="contain"
+      />
 
         {/* Liste des médicaments */}
-        {medications.length === 0 ? (
+        {activeMedications.length === 0 ? (
           <Text style={styles.emptyText}>Aucun médicament enregistré.</Text>
         ) : (
-          medications.map((med) => (
+          activeMedications.map((med) => (
             /* carte d'un medicament */
             <View key={med.id} style={styles.medCard}>     
               <View style={styles.medHeader}>
@@ -251,6 +289,55 @@ export default function HomeScreen() {
           ))
         )}
 
+        {/* calendrier bas de page */}
+      <View style={styles.calendarContainer}>
+        {/* en-tete du calendrier avec mois et annee */}
+        <Text style={styles.calendarTitle}>
+          {now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+        </Text>
+        {/* Jours de la semaine */}
+        <View style={styles.weekHeaderRow}>
+          {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, idx) => (
+            <Text key={idx} style={styles.weekHeaderLabel}>
+              {day}
+            </Text>
+          ))}
+        </View>
+        {/* grille des jours du mois */}
+        <View style={styles.monthGrid}>
+          {(() => {
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            // nombre de jours dans le mois
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            // premier jour du mois (0 = Dimanche par defaut)
+            // et ajustement pour faire commencer la semaine le lundi = 0
+            const firstDay = new Date(year, month, 1).getDay();
+            const startingPadding = (firstDay + 6) % 7;
+            // cases vides precedant le 1er du mois
+            const gridCells = [];
+            for (let i = 0; i < startingPadding; i++) {
+              gridCells.push(<View key={`empty-${i}`} style={styles.dayBox} />);
+            }
+            // cases pour chaque jour du mois
+            for (let day = 1; day <= daysInMonth; day++) {
+              const isToday =
+                day === now.getDate() &&
+                month === new Date().getMonth() &&
+                year === new Date().getFullYear();
+              gridCells.push(
+                <View key={day} style={[styles.dayBox, isToday && styles.todayBox]}>
+                  <Text style={[styles.dayNum, isToday && styles.todayText]}>
+                    {day}
+                  </Text>
+                </View>
+              );
+            }
+            return gridCells;
+          })()}
+        </View>
+      </View>
+
       {/* === DATE HEURE === */}
       <Text style={styles.date}>
         {formattedDate}
@@ -264,7 +351,10 @@ export default function HomeScreen() {
           <TouchableOpacity onPress={() => router.push('/add-medication')}>
             <Ionicons name="add-circle-outline" style={styles.icone}/>
           </TouchableOpacity>
-          <Ionicons name="time-outline" style={styles.icone}/>
+          <TouchableOpacity onPress={() => openHistoryModal()}>
+            <Ionicons name="time-outline" style={styles.icone}/>
+          </TouchableOpacity>
+          <Ionicons name="calendar-number-outline" style={styles.icone}/>
           <TouchableOpacity onPress={() => openConditionsModal()}>
             <Ionicons name="shield-checkmark-outline" style={styles.icone}/>
           </TouchableOpacity>
@@ -329,7 +419,7 @@ export default function HomeScreen() {
                 "Vos données ne sont ni collectées ni partagées. Elles sont stockées exclusivement et localement sur votre appareil.\n\n" +
                 "6. Propriété intellectuelle\n" +
                 "Tous les droits relatifs à l'application et à son code source sont réservés.\n\n" +
-                "Azee v1.1.0 / S. Robin"}
+                "Azee v2.0.0 / S. Robin"}
               </Text>
             </ScrollView>
 
@@ -440,6 +530,57 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.closeModalBtn}
               onPress={() => setIsModalVisible(false)}
+            >
+              <Text style={styles.closeModalBtnText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* === MODAL HISTORIQUE / TOUS LES MEDICAMENTS === */}
+      <Modal
+        visible={isHistoryModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsHistoryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Tous les médicaments</Text>
+            <Text style={styles.modalSubtitle}>historique enregistré</Text>
+
+            <ScrollView style={{ width: '100%', maxHeight: 350, marginVertical: 10 }}>
+              {allMedicationsHistory.length === 0 ? (
+                <Text style={{ textAlign: 'center', color: grisIntermediaire, marginTop: 20 }}>
+                  Aucun médicament enregistré dans la base.
+                </Text>
+              ) : (
+                allMedicationsHistory.map((med) => {
+                  // Formatage optionnel de la date de départ (AAAA-MM-JJ -> JJ/MM/AAAA)
+                  const [y, m, d] = med.start_date.split('-');
+                  const formattedStartDate = `${d}/${m}/${y}`;
+
+                  return (
+                    <View key={med.id} style={styles.historyCard}>
+                      <Text style={styles.historyMedName}>{med.name}</Text>
+                      <Text style={styles.historyDetails}>
+                        Début : <Text style={{ fontWeight: 'bold' }}>{formattedStartDate}</Text>
+                      </Text>
+                      <Text style={styles.historyDetails}>
+                        Durée : <Text style={{ fontWeight: 'bold' }}>{med.duration_days} jour(s)</Text>
+                      </Text>
+                      <Text style={styles.historyDetails}>
+                        Posologie : <Text style={{ fontWeight: 'bold' }}>{med.posologie}</Text>
+                      </Text>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={styles.closeModalBtn} 
+              onPress={() => setIsHistoryModalVisible(false)}
             >
               <Text style={styles.closeModalBtnText}>Fermer</Text>
             </TouchableOpacity>
@@ -575,6 +716,7 @@ const styles = StyleSheet.create({
     padding: 16, 
     borderRadius: 16, 
     marginTop: 10,
+    marginBottom:10
   },
   calendarTitle: { 
     fontSize: 16, 
@@ -624,12 +766,12 @@ const styles = StyleSheet.create({
     backgroundColor:'white',
     borderRadius:20,
     marginTop:6,
-    marginBottom:8,
+    marginBottom:10,
     padding:4,
     gap: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    width:'60%'
+    width:'80%'
   },
   menuContainer:{
     alignItems:'center'
@@ -646,7 +788,7 @@ const styles = StyleSheet.create({
     justifyContent:'center',
     marginTop:6
   },
-    timeText: { 
+  timeText: { 
     fontSize: 18, 
     fontWeight: 600, 
     color: grisIntermediaire, 
@@ -750,5 +892,24 @@ const styles = StyleSheet.create({
     color: grisSombre,
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  // MODAL HISTORIQUE
+  historyCard: {
+    backgroundColor: couleurFond,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 10,
+    width: '100%',
+  },
+  historyMedName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: grisSombre,
+    marginBottom: 4,
+  },
+  historyDetails: {
+    fontSize: 14,
+    color: grisIntermediaire,
   },
 });
