@@ -17,6 +17,8 @@ export default function HomeScreen() {
   const [isTermsModalVisible, setIsTermsModalVisible] = useState(true);
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
   const [allMedicationsHistory, setAllMedicationsHistory] = useState([]);
+  const [monthLogs, setMonthLogs] = useState([]);
+  const [isGlobalCalendarModalVisible, setIsGlobalCalendarModalVisible] = useState(false);
 
   /* === DATE D'AUJOURD'HUI === */
   const dateString = now.toISOString().split('T')[0];
@@ -49,8 +51,27 @@ export default function HomeScreen() {
         logMap[`${log.medication_id}_${log.slot}`] = log.taken === 1;
       });
       setLogs(logMap);
+      // recuperer les prises du mois en cours pour le calendrier de bas de page
+      await loadMonthLogs(db);
     }catch (error) {
       console.error("Erreur lors du chargement des données:", error);
+    }
+  };
+
+  /* === CHARGER LES PRISES DU MOIS PRECEDENT, DU MOIS EN COURS ET DU MOIS SUIVANT === */
+  const loadMonthLogs = async (dbParam) => {
+    try {
+      const db = dbParam || (await getDatabase());
+      const [y, m] = dateString.split('-').map(Number); // m : 1 a 12
+      const from = toDateStr(new Date(y, m - 2, 1)); // 1er jour du mois precedent
+      const to = toDateStr(new Date(y, m + 1, 0));   // dernier jour du mois suivant
+      const rows = await db.getAllAsync(
+        'SELECT medication_id, date, slot FROM daily_logs WHERE date BETWEEN ? AND ? AND taken = 1',
+        [from, to]
+      );
+      setMonthLogs(rows);
+    } catch (error) {
+      console.error("Erreur chargement des prises du mois:", error);
     }
   };
   useFocusEffect(
@@ -163,40 +184,150 @@ export default function HomeScreen() {
        DO UPDATE SET taken = excluded.taken`,
       [medId, dateString, slot, newStatus ? 1 : 0]
     );
-    setLogs((prev) => ({
+        setLogs((prev) => ({
       ...prev,
       [`${medId}_${slot}`]: newStatus,
     }));
+    // mettre a jour le calendrier de bas de page
+    loadMonthLogs(db);
   };
 
-  // Fonction pour vérifier si un traitement est actif aujourd'hui
-  const isMedicationActive = (med) => {
-    if (!med.start_date || !med.duration_days) return true; // Sécurité si les champs sont absents
+  /* === CRENEAUX REQUIS POUR UN MEDICAMENT === */
+  const getRequiredSlots = (med) => {
+    const slots = [];
+    if (med.take_morning === 1) slots.push('morning');
+    if (med.take_noon === 1) slots.push('noon');
+    if (med.take_evening === 1) slots.push('evening');
+    if (med.take_night === 1) slots.push('night');
+    return slots;
+  };
 
-    // Date de début
+  /* === VERIFIER SI UN TRAITEMENT EST EN COURS A UNE DATE DONNEE ('AAAA-MM-JJ') === */
+  const isMedicationActiveOn = (med, dateStr) => {
+    if (!med.start_date || !med.duration_days) return false;
     const [sYear, sMonth, sDay] = med.start_date.split('-').map(Number);
     const start = new Date(sYear, sMonth - 1, sDay);
-
-    // Date de fin (Date de début + durée - 1 jour)
     const end = new Date(start);
     end.setDate(end.getDate() + med.duration_days - 1);
+    const [dYear, dMonth, dDay] = dateStr.split('-').map(Number);
+    const d = new Date(dYear, dMonth - 1, dDay);
+    return d >= start && d <= end;
+  };
 
-    // Date d'aujourd'hui
+  /* === STATUT GLOBAL D'UNE JOURNEE (TOUS MEDICAMENTS CONFONDUS) ===
+     'completed' : tous les medicaments du jour ont ete pris (vert)
+     'missed'    : au moins une prise du jour n'a pas ete effectuee (rouge)
+     'upcoming'  : journee future avec un traitement prevu (gris)
+     null        : aucun traitement ce jour-la */
+  const takenSet = new Set(monthLogs.map((l) => `${l.medication_id}_${l.date}_${l.slot}`));
+  const getGlobalDayStatus = (dateStr) => {
+    const dayMeds = medications.filter(
+      (med) => isMedicationActiveOn(med, dateStr) && getRequiredSlots(med).length > 0
+    );
+    if (dayMeds.length === 0) return null;
+    if (dateStr > dateString) return 'upcoming';
+    const allTaken = dayMeds.every((med) =>
+      getRequiredSlots(med).every((slot) => takenSet.has(`${med.id}_${dateStr}_${slot}`))
+    );
+    return allTaken ? 'completed' : 'missed';
+  };
+
+    /* === CASES D'UN MOIS (month : 0 a 11) AVEC LES COULEURS DU STATUT GLOBAL === */
+  const renderMonthCells = (year, month) => {
+    // nombre de jours dans le mois
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    // premier jour du mois (0 = Dimanche par defaut)
+    // et ajustement pour faire commencer la semaine le lundi = 0
+    const firstDay = new Date(year, month, 1).getDay();
+    const startingPadding = (firstDay + 6) % 7;
+    // cases vides precedant le 1er du mois
+    const gridCells = [];
+    for (let i = 0; i < startingPadding; i++) {
+      gridCells.push(<View key={`empty-${i}`} style={styles.dayBox} />);
+    }
+    // cases pour chaque jour du mois
+    for (let day = 1; day <= daysInMonth; day++) {
+      const isToday =
+        day === now.getDate() &&
+        month === now.getMonth() &&
+        year === now.getFullYear();
+      const dateStr = toDateStr(new Date(year, month, day));
+      const status = getGlobalDayStatus(dateStr);
+      gridCells.push(
+        <View
+          key={day}
+          style={[
+            styles.dayBox,
+            status && styles.dayStatusBox,
+            status === 'completed' && styles.dayGreen,
+            status === 'missed' && styles.dayRed,
+            status === 'upcoming' && styles.dayUpcoming,
+            // aujourd'hui : fond bleu si pas de traitement, sinon contour bleu
+            isToday && (status ? styles.todayBorder : styles.todayBox),
+          ]}
+        >
+          <Text style={[styles.dayNum, (isToday || status) && styles.todayText]}>
+            {day}
+          </Text>
+        </View>
+      );
+    }
+    return gridCells;
+  };
+
+  /* === UN TRAITEMENT EST-IL PREVU AU MOINS UN JOUR DU MOIS ? === */
+  const monthHasTreatment = (year, month) => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      if (getGlobalDayStatus(toDateStr(new Date(year, month, day)))) return true;
+    }
+    return false;
+  };
+
+  /* === MOIS A AFFICHER DANS LE MODAL CALENDRIER GLOBAL ===
+     mois precedent (si un traitement y etait actif), mois en cours,
+     mois suivant (si un traitement y est prevu) */
+  const getGlobalCalendarMonths = () => {
+    const current = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const months = [];
+    if (monthHasTreatment(previous.getFullYear(), previous.getMonth())) months.push(previous);
+    months.push(current);
+    if (monthHasTreatment(next.getFullYear(), next.getMonth())) months.push(next);
+    return months;
+  };
+
+  /* === OUVRIR LE MODAL CALENDRIER GLOBAL === */
+  const openGlobalCalendarModal = async () => {
+    await loadMonthLogs();
+    setIsGlobalCalendarModalVisible(true);
+  };
+
+  /* === VERIFIER SI UN MEDICAMENT EST ACTIF AUJOURD'HUI === */
+  const isMedicationActive = (med) => {
+    if (!med.start_date || !med.duration_days) return true; 
+    /* Date de début */
+    const [sYear, sMonth, sDay] = med.start_date.split('-').map(Number);
+    const start = new Date(sYear, sMonth - 1, sDay);
+    /* Date de fin = Date de début + durée - 1 jour */
+    const end = new Date(start);
+    end.setDate(end.getDate() + med.duration_days - 1);
+    /* date d'aujourd'hui */
     const [tYear, tMonth, tDay] = dateString.split('-').map(Number);
     const today = new Date(tYear, tMonth - 1, tDay);
-
-    // Le médicament est actif si aujourd'hui est entre le début et la fin (inclus)
+    /* Le médicament est actif si aujourd'hui est entre le début et la fin incluse */
     return today >= start && today <= end;
   };
 
   // Liste filtrée des médicaments en cours
   const activeMedications = medications.filter(isMedicationActive);
 
-  // Ouvrir le modal de l'historique de tous les médicaments
+  /* ouvrir le modal de l'historique de tous les medicaments */
   const openHistoryModal = async () => {
     try {
       const db = await getDatabase();
-      // Récupère absolument tous les médicaments sans filtre de date
+      /* recupere tous les medicaments sans filtre de date */
       const meds = await db.getAllAsync('SELECT * FROM medications ORDER BY start_date DESC');
       setAllMedicationsHistory(meds);
       setIsHistoryModalVisible(true);
@@ -295,6 +426,11 @@ export default function HomeScreen() {
         <Text style={styles.calendarTitle}>
           {now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
         </Text>
+
+                    <Text style={styles.calendarSubtitle}>suivi global des prises</Text>
+
+
+        
         {/* Jours de la semaine */}
         <View style={styles.weekHeaderRow}>
           {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, idx) => (
@@ -304,38 +440,25 @@ export default function HomeScreen() {
           ))}
         </View>
         {/* grille des jours du mois */}
-        <View style={styles.monthGrid}>
-          {(() => {
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            // nombre de jours dans le mois
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            // premier jour du mois (0 = Dimanche par defaut)
-            // et ajustement pour faire commencer la semaine le lundi = 0
-            const firstDay = new Date(year, month, 1).getDay();
-            const startingPadding = (firstDay + 6) % 7;
-            // cases vides precedant le 1er du mois
-            const gridCells = [];
-            for (let i = 0; i < startingPadding; i++) {
-              gridCells.push(<View key={`empty-${i}`} style={styles.dayBox} />);
-            }
-            // cases pour chaque jour du mois
-            for (let day = 1; day <= daysInMonth; day++) {
-              const isToday =
-                day === now.getDate() &&
-                month === new Date().getMonth() &&
-                year === new Date().getFullYear();
-              gridCells.push(
-                <View key={day} style={[styles.dayBox, isToday && styles.todayBox]}>
-                  <Text style={[styles.dayNum, isToday && styles.todayText]}>
-                    {day}
-                  </Text>
-                </View>
-              );
-            }
-            return gridCells;
-          })()}
+                <View style={styles.monthGrid}>
+          {renderMonthCells(now.getFullYear(), now.getMonth())}
         </View>
+
+        {/* legende */}
+            <View style={styles.legendRow}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayGreen]} />
+                <Text style={styles.legendText}>tout pris</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayRed]} />
+                <Text style={styles.legendText}>oubli</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayUpcoming]} />
+                <Text style={styles.legendText}>à venir</Text>
+              </View>
+            </View>
       </View>
 
       {/* === DATE HEURE === */}
@@ -354,7 +477,9 @@ export default function HomeScreen() {
           <TouchableOpacity onPress={() => openHistoryModal()}>
             <Ionicons name="time-outline" style={styles.icone}/>
           </TouchableOpacity>
-          <Ionicons name="calendar-number-outline" style={styles.icone}/>
+          <TouchableOpacity onPress={() => openGlobalCalendarModal()}>
+            <Ionicons name="calendar-number-outline" style={styles.icone}/>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => openConditionsModal()}>
             <Ionicons name="shield-checkmark-outline" style={styles.icone}/>
           </TouchableOpacity>
@@ -446,6 +571,23 @@ export default function HomeScreen() {
             <Text style={styles.modalSubtitle}>
               Traitement sur {selectedMed?.duration_days} jour(s)
             </Text>
+
+            {/* legende */}
+            <View style={styles.legendRow}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayGreen]} />
+                <Text style={styles.legendText}>pris</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayRed]} />
+                <Text style={styles.legendText}>oubli</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayUpcoming]} />
+                <Text style={styles.legendText}>à venir</Text>
+              </View>
+            </View>
+
             <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingVertical: 10 }}>
               {selectedMed && (() => {
                 // calcul de la date de debut et de la date de fin
@@ -537,6 +679,70 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      {/* === MODAL CALENDRIER GLOBAL (MOIS PRECEDENT / EN COURS / SUIVANT) === */}
+      <Modal
+        visible={isGlobalCalendarModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsGlobalCalendarModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Calendrier</Text>
+            <Text style={styles.modalSubtitle}>suivi global des prises</Text>
+
+            {/* legende */}
+            <View style={styles.legendRow}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayGreen]} />
+                <Text style={styles.legendText}>tout pris</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayRed]} />
+                <Text style={styles.legendText}>oubli</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, styles.dayUpcoming]} />
+                <Text style={styles.legendText}>à venir</Text>
+              </View>
+            </View>
+
+            <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingVertical: 10 }}>
+              {getGlobalCalendarMonths().map((monthDate) => {
+                const year = monthDate.getFullYear();
+                const month = monthDate.getMonth();
+                return (
+                  <View key={`${year}-${month}`} style={styles.popupMonthContainer}>
+                    {/* en-tete mois + annee */}
+                    <Text style={styles.popupMonthTitle}>
+                      {monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                    </Text>
+                    {/* en-tete des jours de la semaine */}
+                    <View style={styles.weekHeaderRow}>
+                      {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, idx) => (
+                        <Text key={idx} style={styles.weekHeaderLabel}>
+                          {d}
+                        </Text>
+                      ))}
+                    </View>
+                    {/* grille du mois */}
+                    <View style={styles.monthGrid}>{renderMonthCells(year, month)}</View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            {/* bouton Fermer */}
+            <TouchableOpacity
+              style={styles.closeModalBtn}
+              onPress={() => setIsGlobalCalendarModalVisible(false)}
+            >
+              <Text style={styles.closeModalBtnText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* === MODAL HISTORIQUE / TOUS LES MEDICAMENTS === */}
       <Modal
         visible={isHistoryModalVisible}
@@ -590,6 +796,11 @@ export default function HomeScreen() {
 
     </ScrollView>
   );
+}
+
+// convertit une Date en chaine 'AAAA-MM-JJ' (heure locale)
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // composant pour chaque moment de prise
@@ -831,6 +1042,13 @@ const styles = StyleSheet.create({
     color: grisIntermediaire,
     marginBottom: 10,
   },
+  calendarSubtitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: grisIntermediaire,
+    marginBottom: 10,
+    textAlign:'center'
+  },
   popupMonthContainer: {
     marginBottom: 20,
   },
@@ -911,5 +1129,33 @@ const styles = StyleSheet.create({
   historyDetails: {
     fontSize: 14,
     color: grisIntermediaire,
+  },
+    dayStatusBox: {
+    borderRadius: 18
+  },
+  todayBorder: {
+    borderWidth: 3,
+    borderColor: grisClair,
+    borderRadius: 18
+  },
+    legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 14,
+    marginBottom: 6
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6
+  },
+  legendText: {
+    fontSize: 12,
+    color: grisIntermediaire
   },
 });

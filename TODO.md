@@ -1,8 +1,6 @@
 # TODO
 
-1. rajouter un calendrier global faisant apparaître l'état des prises 
-de médicaments sur 3 mois (le précédent, le présent, le suivant), en respectant 
-des couleurs vert, rouge et gris.
+1. modifier apparence des calendriers
 2. vérifier la performance du code
 3. vérifier la conformité du splashscreen et si besoin en créer un de taille 1280x1280
 4. résoudre le problème de l'écran qui cache la saisie dans le formulaire Nouveau Médicament
