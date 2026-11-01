@@ -10,4 +10,3 @@
 durant le mois. Confettis
 8. comprendre pourquoi le placeholder des saisies ne s'affiche pas toujours. S'interroger sur 
 les ajouts du comportement dans la saisie. 
-9. Se pencher sur le problème du chargement de l'image.
