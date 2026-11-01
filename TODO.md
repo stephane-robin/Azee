@@ -10,3 +10,5 @@
 durant le mois. Confettis
 8. comprendre pourquoi le placeholder des saisies ne s'affiche pas toujours. S'interroger sur 
 les ajouts du comportement dans la saisie. 
+9. nettoyage du code : eviter les doublons de code et les doublons css
+10. uniformiser les tailles css

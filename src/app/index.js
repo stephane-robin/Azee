@@ -35,18 +35,14 @@ export default function HomeScreen() {
     return () => clearInterval(timer);
   }, []);
   
-  /* === CHARGER LES MEDICAMENTS ET ETATS DES PRISES DE JOUR A PARTIR DE LA BDD === */
+  /* === CHARGER LES MEDICAMENTS, ETATS, PRISES DU JOUR, DU MOIS, SUR 3 MOIS === */
   const loadData = async () => {
     try{
       const db = await getDatabase();
-      // charger les medicaments
       const meds = await db.getAllAsync('SELECT * FROM medications');
       setMedications(meds);
       // recuperer les etats des prises de tous les medicaments pour aujourd'hui
-      const dailyLogs = await db.getAllAsync(
-        'SELECT * FROM daily_logs WHERE date = ?',
-        [dateString]
-      );
+      const dailyLogs = await db.getAllAsync('SELECT * FROM daily_logs WHERE date = ?', [dateString]);
       const logMap = {};
       dailyLogs.forEach((log) => {
         logMap[`${log.medication_id}_${log.slot}`] = log.taken === 1;
@@ -59,13 +55,18 @@ export default function HomeScreen() {
     }
   };
 
-  /* === CHARGER LES PRISES DU MOIS PRECEDENT, DU MOIS EN COURS ET DU MOIS SUIVANT === */
+  /* === CHARGER LES PRISES DU MOIS PRECEDENT, DU MOIS EN COURS ET DU MOIS SUIVANT 
+  fonction necessaire car appelee une fois au demarrage pour le calendrier mensuel 
+  et aussi lors de l'ouverture du modal de calendrier global === */
   const loadMonthLogs = async (dbParam) => {
     try {
       const db = dbParam || (await getDatabase());
-      const [y, m] = dateString.split('-').map(Number); // m : 1 a 12
-      const from = toDateStr(new Date(y, m - 2, 1)); // 1er jour du mois precedent
-      const to = toDateStr(new Date(y, m + 1, 0));   // dernier jour du mois suivant
+      /* mois de 1 a 12 */
+      const [y, m] = dateString.split('-').map(Number); 
+      /* 1er jour du mois precedent */
+      const from = toDateStr(new Date(y, m - 2, 1)); 
+      /* dernier jour du mois suivant */
+      const to = toDateStr(new Date(y, m + 1, 0)); 
       const rows = await db.getAllAsync(
         'SELECT medication_id, date, slot FROM daily_logs WHERE date BETWEEN ? AND ? AND taken = 1',
         [from, to]
@@ -95,17 +96,6 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Erreur chargement des logs du médicament:", error);
     }
-  };
-
-  /* === OUVRIR LE MODAL DE LA POSOLOGIE D'UN MEDICAMENT === */
-  const openTextModal = (med) => {
-    setSelectedMed(med);
-    setIsPosologyModalVisible(true);
-  };
-
-  /* === OUVRIR LE MODAL DES CONDITIONS === */
-  const openConditionsModal = () => {
-    setIsTermsModalVisible(true);
   };
 
   /* === CALCUL DU STATUT GLOBAL D'UNE JOURNEE POUR UN MEDICAMENT === */
@@ -299,6 +289,17 @@ export default function HomeScreen() {
     return months;
   };
 
+  /* === OUVRIR LE MODAL DE LA POSOLOGIE D'UN MEDICAMENT === */
+  const openTextModal = (med) => {
+    setSelectedMed(med);
+    setIsPosologyModalVisible(true);
+  };
+
+  /* === OUVRIR LE MODAL DES CONDITIONS === */
+  const openConditionsModal = () => {
+    setIsTermsModalVisible(true);
+  };
+
   /* === OUVRIR LE MODAL CALENDRIER GLOBAL === */
   const openGlobalCalendarModal = async () => {
     await loadMonthLogs();
@@ -421,45 +422,37 @@ export default function HomeScreen() {
           ))
         )}
 
-        {/* calendrier bas de page */}
-      <View style={styles.calendarContainer}>
-        {/* en-tete du calendrier avec mois et annee */}
-        <Text style={styles.calendarTitle}>
-          {now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-        </Text>
-
-                    <Text style={styles.calendarSubtitle}>suivi global des prises</Text>
-
-
-        
-        {/* Jours de la semaine */}
-        <View style={styles.weekHeaderRow}>
-          {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, idx) => (
-            <Text key={idx} style={styles.weekHeaderLabel}>
-              {day}
-            </Text>
-          ))}
-        </View>
-        {/* grille des jours du mois */}
-                <View style={styles.monthGrid}>
-          {renderMonthCells(now.getFullYear(), now.getMonth())}
-        </View>
-
-        {/* legende */}
-            <View style={styles.legendRow}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayGreen]} />
-                <Text style={styles.legendText}>tout pris</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayRed]} />
-                <Text style={styles.legendText}>oubli</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayUpcoming]} />
-                <Text style={styles.legendText}>à venir</Text>
-              </View>
+        {/* === CALENDRIER BAS DE PAGE === */}
+        <View style={styles.calendarContainer}>
+          <Text style={styles.calendarTitle}>
+            {now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+          </Text>
+          <Text style={styles.calendarSubtitle}>suivi global des prises</Text>        
+          
+          {/* legende */}
+          <View style={styles.legendRow}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, styles.dayGreen]} />
+              <Text style={styles.legendText}>tout pris</Text>
             </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, styles.dayRed]} />
+              <Text style={styles.legendText}>oubli</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, styles.dayUpcoming]} />
+              <Text style={styles.legendText}>à venir</Text>
+            </View>
+          </View>
+          <View style={styles.weekHeaderRow}>
+              {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, idx) => (
+                <Text key={idx} style={styles.weekHeaderLabel}>{day}</Text>
+              ))}
+            </View>
+          {/* grille des jours du mois */}
+          <View style={styles.monthGrid}>
+            {renderMonthCells(now.getFullYear(), now.getMonth())}
+          </View>
       </View>
 
       {/* === DATE HEURE === */}
@@ -691,7 +684,6 @@ export default function HomeScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Calendrier</Text>
             <Text style={styles.modalSubtitle}>suivi global des prises</Text>
-
             {/* legende */}
             <View style={styles.legendRow}>
               <View style={styles.legendItem}>
@@ -707,23 +699,19 @@ export default function HomeScreen() {
                 <Text style={styles.legendText}>à venir</Text>
               </View>
             </View>
-
+            {/* deroulant des calendriers */}
             <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingVertical: 10 }}>
               {getGlobalCalendarMonths().map((monthDate) => {
                 const year = monthDate.getFullYear();
                 const month = monthDate.getMonth();
                 return (
                   <View key={`${year}-${month}`} style={styles.popupMonthContainer}>
-                    {/* en-tete mois + annee */}
                     <Text style={styles.popupMonthTitle}>
                       {monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                     </Text>
-                    {/* en-tete des jours de la semaine */}
                     <View style={styles.weekHeaderRow}>
                       {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, idx) => (
-                        <Text key={idx} style={styles.weekHeaderLabel}>
-                          {d}
-                        </Text>
+                        <Text key={idx} style={styles.weekHeaderLabel}>{d}</Text>
                       ))}
                     </View>
                     {/* grille du mois */}
@@ -732,8 +720,6 @@ export default function HomeScreen() {
                 );
               })}
             </ScrollView>
-
-            {/* bouton Fermer */}
             <TouchableOpacity
               style={styles.closeModalBtn}
               onPress={() => setIsGlobalCalendarModalVisible(false)}
@@ -828,51 +814,63 @@ function SlotCard({ label, isEnabled, isTaken, onPress }) {
 // styles
 const styles = StyleSheet.create({
   container: { 
+    backgroundColor: couleurFond,
     flex: 1, 
     padding:10,
     paddingTop:20,
-    backgroundColor: couleurFond, 
-
   },
   scrollContent: { 
     padding: 16, 
     paddingBottom: 80
   },
+
+  /* === HAUT DE PAGE === */
   titre:{
     color:bleuPrincipal,
-    fontWeight: '600',
     fontSize: 22,
+    fontWeight: '600',
     textAlign: 'center',
     marginTop:10,
     marginBottom:10
   },
   ligne1: { 
-    textAlign: 'center', 
     color: grisIntermediaire, 
+    fontSize: 16,
     marginTop: 12, 
     marginBottom:12, 
-    fontSize: 16 
+    textAlign: 'center'
   },
+
+  /* === IMAGE === */
+  illustration: {
+    marginBottom: 12,
+    width: '100%',
+    height: 150,
+    resizeMode: 'contain',
+  },
+
+  /* === CARTES DE MEDICAMENTS === */
   emptyText: { 
-    textAlign: 'center', 
+    fontSize: 16,
     color: grisIntermediaire, 
     marginTop: 32, 
-    fontSize: 16 
+    textAlign: 'center'
   },
   medCard: { 
     backgroundColor: bleuSecondaire, 
     padding: 14, 
-    borderRadius: 20, 
-    marginBottom: 12 
+    marginBottom: 12,
+    borderRadius: 20
   },
   medHeader: { 
     flexDirection: 'column', 
     justifyContent: 'space-between', 
     alignItems: 'flex-start', 
-    marginBottom: 0 },
+    marginBottom: 0 
+  },
   medNameContainer: {
     flex: 1,                  
-    marginRight: 10,          
+    marginRight: 10        
   },
   medName: { 
     color: grisSombre, 
@@ -880,6 +878,38 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     flexWrap: 'wrap' 
   },
+  /* boutons vert rouge gris */
+  slotsRow: { 
+    flexDirection: 'row', 
+    gap: 8,
+    marginTop:10
+  },
+  slot: { 
+    flex: 1, 
+    padding: 4, 
+    alignItems: 'center',
+    borderRadius: 20
+  },
+  slotRed: { 
+    backgroundColor: rouge
+  },
+  slotGreen: { 
+    backgroundColor: vert
+  },
+  slotgray:{
+    backgroundColor: grisClair
+  },
+  slotText: { 
+    color: '#fff', 
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  slotStatus: { 
+    color: '#fff', 
+    fontSize: 11, 
+    marginTop: 2 
+  },
+  /* menu d'un medicament */
   actionButtonsRow: {
     flexDirection: 'row',
     marginTop:6,
@@ -890,84 +920,54 @@ const styles = StyleSheet.create({
   },
   iconBtn: {
     padding: 8,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  slotsRow: { 
-    flexDirection: 'row', 
-    gap: 8,
-    marginTop:10
-  },
-  slot: { 
-    flex: 1, 
-    padding: 4, 
-    borderRadius: 20, 
-    alignItems: 'center' 
-  },
-  slotRed: { 
-    backgroundColor: rouge
-  },
-  slotGreen: { 
-    backgroundColor:  vert
-  },
-  slotgray:{
-    backgroundColor: grisClair
-  },
-  slotText: { 
-    color: '#fff', 
-    fontWeight: 'bold', 
-    fontSize: 14,
-  },
-  slotStatus: { 
-    color: '#fff', 
-    fontSize: 11, 
-    marginTop: 2 
+    justifyContent: 'center'
   },
   calendarContainer: { 
     backgroundColor: '#fff', 
-    padding: 16, 
-    borderRadius: 16, 
+    padding: 16,  
     marginTop: 10,
-    marginBottom:10
+    marginBottom:10,
+    borderRadius: 16
   },
   calendarTitle: { 
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    marginBottom: 12, 
     color: grisSombre, 
+    fontSize: 16, 
+    fontWeight: 700, 
+    marginBottom: 8, 
     textAlign: 'center',
     textTransform: 'capitalize' 
   },
   weekHeaderRow: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
-    marginBottom: 8 
+    marginBottom: 8
   },
   weekHeaderLabel: { 
-    width: '14.28%', 
-    textAlign: 'center', 
-    fontWeight: 'bold', 
+    color: '#000',
     fontSize: 12, 
-    color: grisIntermediaire
+    fontWeight: 700,
+    textAlign: 'center', 
+    width: '14.28%'    
   },
   monthGrid: { 
     flexDirection: 'row', 
     flexWrap: 'wrap' 
   },
   dayBox: { 
-    width: '14.28%',
-    height: 36, 
-    justifyContent: 'center', 
     alignItems: 'center', 
-    marginVertical: 2 
+    justifyContent: 'center', 
+    marginVertical: 2,
+    width: '14.28%',
+    height: 36 
   },
   todayBox: { 
     backgroundColor: bleuPrincipal, 
     borderRadius: 18 
   },
   dayNum: { 
-    fontSize: 14, 
-    color: '#000' 
+    color: '#000',
+    fontSize: 14
   },
   todayText: { 
     color: '#fff', 
@@ -989,64 +989,58 @@ const styles = StyleSheet.create({
     alignItems:'center'
   },
   icone:{
+    color:grisIntermediaire,
     fontSize:25,
-    color:grisIntermediaire
   },
   date:{
+    color: grisIntermediaire,
     fontSize: 18, 
     fontWeight:600,
-    color: grisIntermediaire,
+    marginTop:6,
     textAlign:'center',
-    justifyContent:'center',
-    marginTop:6
+    justifyContent:'center'
   },
   timeText: { 
+    color: grisIntermediaire, 
     fontSize: 18, 
     fontWeight: 600, 
-    color: grisIntermediaire, 
-    textAlign: 'center', 
-    justifyContent:'center',
     marginTop: 10 ,
-    marginBottom: 20
+    marginBottom: 20,
+    textAlign: 'center', 
+    justifyContent:'center'
   },
-  illustration: {
-    width: '100%',
-    height: 150, // Ajustez la hauteur selon vos besoins
-    resizeMode: 'contain',
-    marginBottom: 12,
-  },
-
-  // Modal calendrier pop-up
+  
+  /* === MODAL CALENDRIER UN MEDICAMENT === */
   modalOverlay: {
-    flex: 1,
     backgroundColor: transparent,
-    justifyContent: 'center',
+    flex: 1,
+    padding: 20,
     alignItems: 'center',
-    padding: 20
+    justifyContent: 'center'
   },
   modalContent: {
-    width: '100%',
-    maxHeight: '80%',
     backgroundColor: '#fff',
-    borderRadius: 20,
     padding: 16,
+    borderRadius: 20,
     alignItems: 'center',
+    width: '100%',
+    maxHeight: '80%'
   },
   modalTitle: {
+    color: grisSombre,
     fontSize: 20,
     fontWeight: 'bold',
-    color: grisSombre,
   },
   modalSubtitle: {
+    color: grisIntermediaire,
     fontSize: 14,
     fontWeight: 'bold',
-    color: grisIntermediaire,
     marginBottom: 10,
   },
   calendarSubtitle: {
+    color: grisIntermediaire,
     fontSize: 14,
     fontWeight: 'bold',
-    color: grisIntermediaire,
     marginBottom: 10,
     textAlign:'center'
   },
@@ -1054,24 +1048,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   popupMonthTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
     color: grisSombre,
-    textAlign: 'center',
-    textTransform: 'capitalize',
+    fontSize: 16,
+    fontWeight: 700,
     marginBottom: 8,
+    textAlign: 'center',
+    textTransform: 'capitalize'    
   },
   popupDayBox: {
-    width: '14.28%',
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginVertical: 2,
     borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+     width: '14.28%',
+    height: 36    
   },
   popupDayNum: {
-    fontSize: 14,
-    color: grisClair, // gris clair pour les jours hors traitement
+    color: grisClair,
+    fontSize: 14
   },
   popupDayNumActive: {
     color: '#fff',
@@ -1087,51 +1081,51 @@ const styles = StyleSheet.create({
     backgroundColor: grisClair,
   },
   closeModalBtn: {
-    marginTop: 10,
     backgroundColor: bleuPrincipal,
+    marginTop: 10,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    borderRadius: 25,
+    borderRadius: 25
   },
   closeModalBtnText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: 'bold'
   },
 
-  // modal posologie
+  /* === MODAL POSOLOGIE === */
   posologyBox: {
-    width: '100%',
     backgroundColor: '#fff',
+    marginVertical: 14,
     padding: 16,
     borderRadius: 12,
-    marginVertical: 14,
+    width: '100%'
   },
   posologyText: {
-    fontSize: 15,
     color: grisSombre,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 22
   },
 
-  // MODAL HISTORIQUE
+  /* === MODAL HISTORIQUE === */
   historyCard: {
     backgroundColor: couleurFond,
+    marginBottom: 10,
     padding: 12,
     borderRadius: 12,
-    marginBottom: 10,
-    width: '100%',
+    width: '100%'
   },
   historyMedName: {
+    color: grisSombre,
     fontSize: 16,
     fontWeight: 'bold',
-    color: grisSombre,
-    marginBottom: 4,
+    marginBottom: 4
   },
   historyDetails: {
-    fontSize: 14,
     color: grisIntermediaire,
+    fontSize: 14
   },
-    dayStatusBox: {
+  dayStatusBox: {
     borderRadius: 18
   },
   todayBorder: {
@@ -1139,24 +1133,24 @@ const styles = StyleSheet.create({
     borderColor: grisClair,
     borderRadius: 18
   },
-    legendRow: {
+  legendRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    marginBottom: 6,
     gap: 14,
-    marginBottom: 6
+    justifyContent: 'center'    
   },
   legendItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4
+    gap: 4,
+    alignItems: 'center'
   },
   legendDot: {
+    borderRadius: 6,
     width: 12,
     height: 12,
-    borderRadius: 6
   },
   legendText: {
+    color: grisIntermediaire,
     fontSize: 12,
-    color: grisIntermediaire
   },
 });

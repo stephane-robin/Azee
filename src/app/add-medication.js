@@ -67,7 +67,7 @@ export default function AddMedicationScreen() {
         contentContainerStyle={styles.scrollContent} 
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent:'center', marginTop:14, marginBottom: 16, gap:10 }}>
+        <View style={styles.ligne}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back-outline" size={24} color={bleuPrincipal} />
           </TouchableOpacity>
@@ -171,18 +171,30 @@ export default function AddMedicationScreen() {
 
 const styles = StyleSheet.create({
   container: { 
+    backgroundColor: couleurFond, 
     flex: 1, 
     padding:10,
-    backgroundColor: couleurFond, 
+    paddingTop:20
   },
   scrollContent: { 
     padding: 16, 
     paddingBottom: 80
   },
+  /* === HAUT DE PAGE === */
   titre:{
     color:bleuPrincipal,
-    fontWeight: '600',
     fontSize: 22,
+    fontWeight: '600',
+    marginTop:10,
+    marginBottom:10
+  },
+  ligne:{
+    flexDirection: 'row', 
+    marginTop:14,
+    marginBottom: 16,
+    gap:10,
+    alignItems: 'center', 
+    justifyContent:'center',   
   },
   label: { 
     fontSize: 16, 
