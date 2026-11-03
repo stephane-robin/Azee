@@ -3,7 +3,6 @@ import {
   StyleSheet, 
   Text, 
   View, 
-  ScrollView, 
   TextInput, 
   TouchableOpacity, 
   Alert, 
@@ -12,7 +11,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getDatabase } from '../database/db';
-import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair } from '../constants/colors';
+import { couleurFond, bleuPrincipal, grisIntermediaire, grisClair } from '../constants/colors';
 
 export default function AddMedicationScreen() {
   const router = useRouter();
@@ -59,14 +58,11 @@ export default function AddMedicationScreen() {
   return (
     <KeyboardAwareScrollView
       style={{ flex: 1 }} 
+      contentContainerStyle={styles.scrollContent} 
       keyboardShouldPersistTaps="handled"
-      bottomOffset={50}
+      bottomOffset={120}
     >
-      <ScrollView 
-        style={styles.container} 
-        contentContainerStyle={styles.scrollContent} 
-        keyboardShouldPersistTaps="handled"
-      >
+        {/* saisie Nom du traitement */}
         <View style={styles.ligne}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back-outline" size={24} color={bleuPrincipal} />
@@ -95,6 +91,7 @@ export default function AddMedicationScreen() {
           />
         </View>
 
+        {/* boutons radio frequence de prise */}
         <Text style={styles.label}>Fréquence de prise</Text>
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Matin</Text>
@@ -133,52 +130,33 @@ export default function AddMedicationScreen() {
           />
         </View>
 
+        {/* saisie posologie */}
         <Text style={styles.label}>Posologie</Text>
         <View style={styles.inputContainer}>
           <TextInput 
-              style={styles.input} 
+              style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]}
               placeholder="Ex: Application cutanée." 
               value={posologie} 
               onChangeText={setPosologie} 
+              multiline
           />
         </View>
 
+        {/* bouton Enregistrer */}
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveBtnText}>Enregistrer</Text>
         </TouchableOpacity>
-
-        {/* menu bas de page */}
-        <View style={styles.menuContainer}>
-          <View style={styles.menu}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="home-outline" style={styles.icone}/>
-            </TouchableOpacity>
-            <Ionicons name="add-circle" style={styles.icone}/>
-            <TouchableOpacity onPress={() => openHistoryModal()}>
-              <Ionicons name="time-outline" style={styles.icone}/>
-            </TouchableOpacity>
-            <Ionicons name="calendar-number-outline" style={styles.icone}/>
-            <TouchableOpacity onPress={() => openConditionsModal()}>
-              <Ionicons name="shield-checkmark-outline" style={styles.icone}/>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-      </ScrollView>
     </KeyboardAwareScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    backgroundColor: couleurFond, 
-    flex: 1, 
-    padding:10,
-    paddingTop:20
-  },
   scrollContent: { 
+    backgroundColor: couleurFond,
+    flexGrow: 1,
     padding: 16, 
-    paddingBottom: 80
+    paddingTop: 20, 
+    paddingBottom: 40
   },
   /* === HAUT DE PAGE === */
   titre:{
@@ -215,11 +193,10 @@ const styles = StyleSheet.create({
     marginVertical: 8
     },
   input: { 
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     borderRadius: 25, 
     padding: 12, 
     fontSize: 16,
-    overflow:'hidden',    
   },
   switchRow: { 
     flexDirection: 'row', 

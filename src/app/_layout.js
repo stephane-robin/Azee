@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, View, Image, Text } from 'react-native';
 import { initDatabase } from '../database/db';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair } from '../constants/colors';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -30,14 +31,16 @@ export default function Layout() {
 
   if (!dbReady) { return null; }
 
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,                             
-        contentStyle: { backgroundColor: couleurFond }, 
-      }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="add-medication" options={{ presentation: 'modal'}} />
-    </Stack>
+    return (
+    <KeyboardProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: couleurFond },
+        }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="add-medication" options={{ presentation: 'modal'}} />
+      </Stack>
+    </KeyboardProvider>
   );
 }

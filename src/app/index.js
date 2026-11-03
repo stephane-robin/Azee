@@ -6,6 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { getDatabase } from '../database/db';
 import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair, rouge, vert } from '../constants/colors';
 
+/* === CONVERTIT UNE DATE EN CHAINE 'AAAA-MM-JJ' === */
+const toDateStr = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 export default function HomeScreen() {
   const router = useRouter();
   const [now, setNow] = useState(new Date());
@@ -145,7 +149,7 @@ export default function HomeScreen() {
   const handleSlotPress = (medId, slot, medName, slotLabel) => {
     const currentStatus = logs[`${medId}_${slot}`] || false;
     if (currentStatus) {
-      // si la prise du medicament est verte, on demande confirmation avant de le passe a rouge
+      /* si la prise du medicament est verte, on demande confirmation avant de le passe a rouge */
       Alert.alert(
         'Modifier le statut',
         `Voulez-vous vraiment marquer la prise "${slotLabel}" de ${medName} comme "non prise" ?`,
@@ -159,7 +163,7 @@ export default function HomeScreen() {
         ]
       );
     } else {
-      // si la prise du medicament est rouge, on passe a vert
+      /* si la prise du medicament est rouge, on passe a vert */
       executeToggle(medId, slot, false);
     }
   };
@@ -179,7 +183,7 @@ export default function HomeScreen() {
       ...prev,
       [`${medId}_${slot}`]: newStatus,
     }));
-    // mettre a jour le calendrier de bas de page
+    /* mettre a jour le calendrier de bas de page */
     loadMonthLogs(db);
   };
 
@@ -205,6 +209,8 @@ export default function HomeScreen() {
     return d >= start && d <= end;
   };
 
+  
+
   /* === STATUT GLOBAL D'UNE JOURNEE (TOUS MEDICAMENTS CONFONDUS) ===
      'completed' : tous les medicaments du jour ont ete pris (vert)
      'missed'    : au moins une prise du jour n'a pas ete effectuee (rouge)
@@ -225,18 +231,18 @@ export default function HomeScreen() {
 
     /* === CASES D'UN MOIS (month : 0 a 11) AVEC LES COULEURS DU STATUT GLOBAL === */
   const renderMonthCells = (year, month) => {
-    // nombre de jours dans le mois
+    /* nombre de jours dans le mois */
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    // premier jour du mois (0 = Dimanche par defaut)
-    // et ajustement pour faire commencer la semaine le lundi = 0
+    /* premier jour du mois (0 = Dimanche par defaut)
+       et ajustement pour faire commencer la semaine le lundi = 0 */
     const firstDay = new Date(year, month, 1).getDay();
     const startingPadding = (firstDay + 6) % 7;
-    // cases vides precedant le 1er du mois
-    const gridCells = [];
+    /* cases vides precedant le 1er du mois */
+     const gridCells = [];
     for (let i = 0; i < startingPadding; i++) {
       gridCells.push(<View key={`empty-${i}`} style={styles.dayBox} />);
     }
-    // cases pour chaque jour du mois
+    /* cases pour chaque jour du mois */
     for (let day = 1; day <= daysInMonth; day++) {
       const isToday =
         day === now.getDate() &&
@@ -250,10 +256,10 @@ export default function HomeScreen() {
           style={[
             styles.dayBox,
             status && styles.dayStatusBox,
-            status === 'completed' && styles.dayGreen,
-            status === 'missed' && styles.dayRed,
-            status === 'upcoming' && styles.dayUpcoming,
-            // aujourd'hui : fond bleu si pas de traitement, sinon contour bleu
+            status === 'completed' && styles.slotGreen,
+            status === 'missed' && styles.slotRed,
+            status === 'upcoming' && styles.slotGray,
+            // aujourd'hui : fond gris si pas de traitement, sinon contour gris
             isToday && (status ? styles.todayBorder : styles.todayBox),
           ]}
         >
@@ -306,26 +312,10 @@ export default function HomeScreen() {
     setIsGlobalCalendarModalVisible(true);
   };
 
-  /* === VERIFIER SI UN MEDICAMENT EST ACTIF AUJOURD'HUI === */
-  const isMedicationActive = (med) => {
-    if (!med.start_date || !med.duration_days) return true; 
-    /* Date de début */
-    const [sYear, sMonth, sDay] = med.start_date.split('-').map(Number);
-    const start = new Date(sYear, sMonth - 1, sDay);
-    /* Date de fin = Date de début + durée - 1 jour */
-    const end = new Date(start);
-    end.setDate(end.getDate() + med.duration_days - 1);
-    /* date d'aujourd'hui */
-    const [tYear, tMonth, tDay] = dateString.split('-').map(Number);
-    const today = new Date(tYear, tMonth - 1, tDay);
-    /* Le médicament est actif si aujourd'hui est entre le début et la fin incluse */
-    return today >= start && today <= end;
-  };
+  /* === LISTE FILTREE DES MEDICAMENTS EN COURS === */
+  const activeMedications = medications.filter((med) => isMedicationActiveOn(med, dateString));
 
-  // Liste filtrée des médicaments en cours
-  const activeMedications = medications.filter(isMedicationActive);
-
-  /* ouvrir le modal de l'historique de tous les medicaments */
+  /* === OUVRIR LE MODAL DE L'HISTORIQUE DE TOUS LES MEDICAMENTS === */
   const openHistoryModal = async () => {
     try {
       const db = await getDatabase();
@@ -350,7 +340,6 @@ export default function HomeScreen() {
       <Image 
         source={require('../../assets/images/oubli2.jpg')} 
         style={styles.illustration} 
-        resizeMode="contain"
       />
 
         {/* Liste des médicaments */}
@@ -432,15 +421,15 @@ export default function HomeScreen() {
           {/* legende */}
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.dayGreen]} />
+              <View style={[styles.legendDot, styles.slotGreen]} />
               <Text style={styles.legendText}>tout pris</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.dayRed]} />
+              <View style={[styles.legendDot, styles.slotRed]} />
               <Text style={styles.legendText}>oubli</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.dayUpcoming]} />
+              <View style={[styles.legendDot, styles.slotGray]} />
               <Text style={styles.legendText}>à venir</Text>
             </View>
           </View>
@@ -524,7 +513,7 @@ export default function HomeScreen() {
             <Text style={styles.modalTitle}>Conditions d'utilisation</Text>
             
             <ScrollView style={{ maxHeight: 350, marginVertical: 12 }}>
-              <Text style={styles.termsBodyText}>
+              <Text>
                 {"1. Objet de l'application\n"} 
                 <Text style={{ fontStyle: 'italic' }}>Azee</Text>
                 {" est un outil numérique personnel et gratuit pour l'organisation de la prise de médicaments. L'application aide à se rappeler que la prise de médicaments a été effectuée, mais n'envoie aucune notification de prise de médicaments. Elle se complète avec les données que vous lui fournissez, ne constitue pas un dispositif médical et ne se substitue pas aux conseils d'un professionnel de santé.\n\n" +
@@ -561,23 +550,23 @@ export default function HomeScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{selectedMed?.name}</Text>
-            <Text style={styles.modalSubtitle}>
+            <Text style={styles.calendarTitle}>{selectedMed?.name}</Text>
+            <Text style={styles.calendarSubtitle}>
               Traitement sur {selectedMed?.duration_days} jour(s)
             </Text>
 
             {/* legende */}
             <View style={styles.legendRow}>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayGreen]} />
+                <View style={[styles.legendDot, styles.slotGreen]} />
                 <Text style={styles.legendText}>pris</Text>
               </View>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayRed]} />
+                <View style={[styles.legendDot, styles.slotRed]} />
                 <Text style={styles.legendText}>oubli</Text>
               </View>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayUpcoming]} />
+                <View style={[styles.legendDot, styles.slotGray]} />
                 <Text style={styles.legendText}>à venir</Text>
               </View>
             </View>
@@ -624,15 +613,15 @@ export default function HomeScreen() {
                         key={day}
                         style={[
                           styles.popupDayBox,
-                          isTreatmentDay && status === 'completed' && styles.dayGreen,
-                          isTreatmentDay && status === 'missed' && styles.dayRed,
-                          isTreatmentDay && status === 'upcoming' && styles.dayUpcoming,
+                          isTreatmentDay && status === 'completed' && styles.slotGreen,
+                          isTreatmentDay && status === 'missed' && styles.slotRed,
+                          isTreatmentDay && status === 'upcoming' && styles.slotGray,
                         ]}
                       >
                         <Text
                           style={[
                             styles.popupDayNum,
-                            isTreatmentDay && styles.popupDayNumActive,
+                            isTreatmentDay && styles.todayText,
                           ]}
                         >
                           {day}
@@ -643,7 +632,7 @@ export default function HomeScreen() {
                   return (
                     <View key={`${year}-${month}`} style={styles.popupMonthContainer}>
                       {/* en-tete mois + annee */}
-                      <Text style={styles.popupMonthTitle}>
+                      <Text style={styles.calendarTitle}>
                         {monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                       </Text>
                       {/* en-tete des jours de la semaine */}
@@ -661,7 +650,6 @@ export default function HomeScreen() {
                 });
               })()}
             </ScrollView>
-
             {/* bouton Fermer */}
             <TouchableOpacity
               style={styles.closeModalBtn}
@@ -682,20 +670,20 @@ export default function HomeScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Calendrier</Text>
-            <Text style={styles.modalSubtitle}>suivi global des prises</Text>
+            <Text style={styles.calendarTitle}>Calendrier</Text>
+            <Text style={styles.calendarSubtitle}>suivi global des prises</Text>
             {/* legende */}
             <View style={styles.legendRow}>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayGreen]} />
+                <View style={[styles.legendDot, styles.slotGreen]} />
                 <Text style={styles.legendText}>tout pris</Text>
               </View>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayRed]} />
+                <View style={[styles.legendDot, styles.slotRed]} />
                 <Text style={styles.legendText}>oubli</Text>
               </View>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, styles.dayUpcoming]} />
+                <View style={[styles.legendDot, styles.slotGray]} />
                 <Text style={styles.legendText}>à venir</Text>
               </View>
             </View>
@@ -706,7 +694,7 @@ export default function HomeScreen() {
                 const month = monthDate.getMonth();
                 return (
                   <View key={`${year}-${month}`} style={styles.popupMonthContainer}>
-                    <Text style={styles.popupMonthTitle}>
+                    <Text style={styles.calendarTitle}>
                       {monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                     </Text>
                     <View style={styles.weekHeaderRow}>
@@ -749,7 +737,7 @@ export default function HomeScreen() {
                 </Text>
               ) : (
                 allMedicationsHistory.map((med) => {
-                  // Formatage optionnel de la date de départ (AAAA-MM-JJ -> JJ/MM/AAAA)
+                  /* Formatage de la date de départ AAAA-MM-JJ -> JJ/MM/AAAA */
                   const [y, m, d] = med.start_date.split('-');
                   const formattedStartDate = `${d}/${m}/${y}`;
 
@@ -770,7 +758,6 @@ export default function HomeScreen() {
                 })
               )}
             </ScrollView>
-
             <TouchableOpacity 
               style={styles.closeModalBtn} 
               onPress={() => setIsHistoryModalVisible(false)}
@@ -785,12 +772,7 @@ export default function HomeScreen() {
   );
 }
 
-// convertit une Date en chaine 'AAAA-MM-JJ' (heure locale)
-function toDateStr(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-// composant pour chaque moment de prise
+/* === COMPOSANT POUR CHAQUE MOMENT DE PRISE === */
 function SlotCard({ label, isEnabled, isTaken, onPress }) {
   if (!isEnabled) {
     return (
@@ -811,7 +793,6 @@ function SlotCard({ label, isEnabled, isTaken, onPress }) {
   );
 }
 
-// styles
 const styles = StyleSheet.create({
   container: { 
     backgroundColor: couleurFond,
@@ -820,8 +801,9 @@ const styles = StyleSheet.create({
     paddingTop:20,
   },
   scrollContent: { 
+    paddingTop: 20,
     padding: 16, 
-    paddingBottom: 80
+    paddingBottom: 40
   },
 
   /* === HAUT DE PAGE === */
@@ -896,7 +878,7 @@ const styles = StyleSheet.create({
   slotGreen: { 
     backgroundColor: vert
   },
-  slotgray:{
+  slotGray:{
     backgroundColor: grisClair
   },
   slotText: { 
@@ -923,12 +905,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
+
+  /* === CALENDRIER === */
   calendarContainer: { 
     backgroundColor: '#fff', 
     padding: 16,  
     marginTop: 10,
     marginBottom:10,
-    borderRadius: 16
+    borderRadius: 20
   },
   calendarTitle: { 
     color: grisSombre, 
@@ -937,6 +921,33 @@ const styles = StyleSheet.create({
     marginBottom: 8, 
     textAlign: 'center',
     textTransform: 'capitalize' 
+  },
+  calendarSubtitle: {
+    color: grisIntermediaire,
+    fontSize: 14,
+    fontWeight: 600,
+    marginBottom: 10,
+    textAlign:'center'
+  },
+  legendRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 14,
+    justifyContent: 'center'    
+  },
+  legendItem: {
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center'
+  },
+  legendDot: {
+    borderRadius: 6,
+    width: 12,
+    height: 12,
+  },
+  legendText: {
+    color: grisIntermediaire,
+    fontSize: 12,
   },
   weekHeaderRow: { 
     flexDirection: 'row', 
@@ -962,7 +973,7 @@ const styles = StyleSheet.create({
     height: 36 
   },
   todayBox: { 
-    backgroundColor: bleuPrincipal, 
+    backgroundColor: grisClair, 
     borderRadius: 18 
   },
   dayNum: { 
@@ -971,8 +982,53 @@ const styles = StyleSheet.create({
   },
   todayText: { 
     color: '#fff', 
-    fontWeight: 'bold' 
-  },  
+    fontWeight: 600 
+  }, 
+  
+  /* === MODAL CALENDRIER UN MEDICAMENT === */
+  modalOverlay: {
+    backgroundColor: transparent,
+    flex: 1,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: '100%',
+    maxHeight: '80%'
+  },
+  popupMonthContainer: {
+    marginBottom: 20,
+  },
+  popupDayBox: {
+    marginVertical: 2,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+     width: '14.28%',
+    height: 36    
+  },
+  popupDayNum: {
+    color: grisClair,
+    fontSize: 14
+  },
+  closeModalBtn: {
+    backgroundColor: bleuPrincipal,
+    marginTop: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20
+  },
+  closeModalBtnText: {
+    color: '#fff',
+    fontWeight: 'bold'
+  }, 
+  
+  /* === MENU === */
   menu: {
     flexDirection: 'row',
     backgroundColor:'white',
@@ -1009,22 +1065,20 @@ const styles = StyleSheet.create({
     textAlign: 'center', 
     justifyContent:'center'
   },
-  
-  /* === MODAL CALENDRIER UN MEDICAMENT === */
-  modalOverlay: {
-    backgroundColor: transparent,
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  modalContent: {
+
+  /* === MODAL POSOLOGIE === */
+  posologyBox: {
     backgroundColor: '#fff',
+    marginVertical: 14,
     padding: 16,
     borderRadius: 20,
-    alignItems: 'center',
-    width: '100%',
-    maxHeight: '80%'
+    width: '100%'
+  },
+  posologyText: {
+    color: grisSombre,
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22
   },
   modalTitle: {
     color: grisSombre,
@@ -1037,82 +1091,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  calendarSubtitle: {
-    color: grisIntermediaire,
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign:'center'
-  },
-  popupMonthContainer: {
-    marginBottom: 20,
-  },
-  popupMonthTitle: {
-    color: grisSombre,
-    fontSize: 16,
-    fontWeight: 700,
-    marginBottom: 8,
-    textAlign: 'center',
-    textTransform: 'capitalize'    
-  },
-  popupDayBox: {
-    marginVertical: 2,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-     width: '14.28%',
-    height: 36    
-  },
-  popupDayNum: {
-    color: grisClair,
-    fontSize: 14
-  },
-  popupDayNumActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  dayGreen: {
-    backgroundColor: vert,
-  },
-  dayRed: {
-    backgroundColor: rouge,
-  },
-  dayUpcoming: {
-    backgroundColor: grisClair,
-  },
-  closeModalBtn: {
-    backgroundColor: bleuPrincipal,
-    marginTop: 10,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 25
-  },
-  closeModalBtnText: {
-    color: '#fff',
-    fontWeight: 'bold'
-  },
-
-  /* === MODAL POSOLOGIE === */
-  posologyBox: {
-    backgroundColor: '#fff',
-    marginVertical: 14,
-    padding: 16,
-    borderRadius: 12,
-    width: '100%'
-  },
-  posologyText: {
-    color: grisSombre,
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 22
-  },
 
   /* === MODAL HISTORIQUE === */
   historyCard: {
     backgroundColor: couleurFond,
     marginBottom: 10,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 20,
     width: '100%'
   },
   historyMedName: {
@@ -1132,25 +1117,5 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: grisClair,
     borderRadius: 18
-  },
-  legendRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-    gap: 14,
-    justifyContent: 'center'    
-  },
-  legendItem: {
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center'
-  },
-  legendDot: {
-    borderRadius: 6,
-    width: 12,
-    height: 12,
-  },
-  legendText: {
-    color: grisIntermediaire,
-    fontSize: 12,
   },
 });
