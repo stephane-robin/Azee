@@ -209,8 +209,6 @@ export default function HomeScreen() {
     return d >= start && d <= end;
   };
 
-  
-
   /* === STATUT GLOBAL D'UNE JOURNEE (TOUS MEDICAMENTS CONFONDUS) ===
      'completed' : tous les medicaments du jour ont ete pris (vert)
      'missed'    : au moins une prise du jour n'a pas ete effectuee (rouge)
@@ -229,8 +227,12 @@ export default function HomeScreen() {
     return allTaken ? 'completed' : 'missed';
   };
 
-    /* === CASES D'UN MOIS (month : 0 a 11) AVEC LES COULEURS DU STATUT GLOBAL === */
-  const renderMonthCells = (year, month) => {
+  /* === CASES D'UN MOIS (month : 0 a 11) ===
+    options.getStatus   : fonction (dateStr) => 'completed' | 'missed' | 'upcoming' | null
+                          par defaut : statut global tous medicaments confondus
+    options.dimInactive : true pour griser le numero des jours sans statut */
+  const renderMonthCells = (year, month, options = {}) => {
+    const { getStatus = getGlobalDayStatus, dimInactive = false } = options;
     /* nombre de jours dans le mois */
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     /* premier jour du mois (0 = Dimanche par defaut)
@@ -238,7 +240,7 @@ export default function HomeScreen() {
     const firstDay = new Date(year, month, 1).getDay();
     const startingPadding = (firstDay + 6) % 7;
     /* cases vides precedant le 1er du mois */
-     const gridCells = [];
+    const gridCells = [];
     for (let i = 0; i < startingPadding; i++) {
       gridCells.push(<View key={`empty-${i}`} style={styles.dayBox} />);
     }
@@ -249,7 +251,7 @@ export default function HomeScreen() {
         month === now.getMonth() &&
         year === now.getFullYear();
       const dateStr = toDateStr(new Date(year, month, day));
-      const status = getGlobalDayStatus(dateStr);
+      const status = getStatus(dateStr);
       gridCells.push(
         <View
           key={day}
@@ -259,11 +261,19 @@ export default function HomeScreen() {
             status === 'completed' && styles.slotGreen,
             status === 'missed' && styles.slotRed,
             status === 'upcoming' && styles.slotGray,
-            // aujourd'hui : fond gris si pas de traitement, sinon contour gris
-            isToday && (status ? styles.todayBorder : styles.todayBox),
+            /* aujourd'hui : toujours un contour gris (couleur de fond selon le statut) */
+            isToday && styles.todayBorder,
           ]}
         >
-          <Text style={[styles.dayNum, (isToday || status) && styles.todayText]}>
+          <Text
+            style={[
+              styles.dayNum,
+              /* jours sans traitement grisés dans le modal d'un médicament (sauf aujourd'hui) */
+              !status && dimInactive && !isToday && styles.popupDayNum,
+              /* texte blanc uniquement sur une case colorée */
+              status && styles.todayText,
+            ]}
+          >
             {day}
           </Text>
         </View>
@@ -572,79 +582,44 @@ export default function HomeScreen() {
             </View>
 
             <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingVertical: 10 }}>
-              {selectedMed && (() => {
-                // calcul de la date de debut et de la date de fin
-                const startDateParts = selectedMed.start_date.split('-');
-                const start = new Date(
-                  parseInt(startDateParts[0], 10),
-                  parseInt(startDateParts[1], 10) - 1,
-                  parseInt(startDateParts[2], 10)
-                );
+                            {selectedMed && (() => {
+                /* statut d'un jour pour ce medicament (null hors de la periode de traitement) */
+                const getMedDayStatus = (dateStr) =>
+                  isMedicationActiveOn(selectedMed, dateStr)
+                    ? getDayStatus(dateStr, selectedMed)
+                    : null;
+                /* calcul de la date de debut et de la date de fin */
+                const [sYear, sMonth, sDay] = selectedMed.start_date.split('-').map(Number);
+                const start = new Date(sYear, sMonth - 1, sDay);
                 const end = new Date(start);
                 end.setDate(end.getDate() + selectedMed.duration_days - 1);
-                // genere la liste de tous les mois a afficher
+                /* liste de tous les mois a afficher */
                 const monthsToDisplay = [];
-                let currentMonthCursor = new Date(start.getFullYear(), start.getMonth(), 1);
-                const lastMonthCursor = new Date(end.getFullYear(), end.getMonth(), 1);
-                while (currentMonthCursor <= lastMonthCursor) {
-                  monthsToDisplay.push(new Date(currentMonthCursor));
-                  currentMonthCursor.setMonth(currentMonthCursor.getMonth() + 1);
+                const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+                const lastMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+                while (cursor <= lastMonth) {
+                  monthsToDisplay.push(new Date(cursor));
+                  cursor.setMonth(cursor.getMonth() + 1);
                 }
                 return monthsToDisplay.map((monthDate) => {
                   const year = monthDate.getFullYear();
                   const month = monthDate.getMonth();
-                  const daysInMonth = new Date(year, month + 1, 0).getDate();
-                  const firstDay = new Date(year, month, 1).getDay();
-                  const startingPadding = (firstDay + 6) % 7;
-                  const gridCells = [];
-                  // case vide avant le 1er du mois
-                  for (let i = 0; i < startingPadding; i++) {
-                    gridCells.push(<View key={`empty-${i}`} style={styles.popupDayBox} />);
-                  }
-                  // grille des jours
-                  for (let day = 1; day <= daysInMonth; day++) {
-                    const currentDayDate = new Date(year, month, day);
-                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    // verifie si le jour est compris dans la duree du traitement
-                    const isTreatmentDay = currentDayDate >= start && currentDayDate <= end;
-                    const status = isTreatmentDay ? getDayStatus(dateStr, selectedMed) : null;
-                    gridCells.push(
-                      <View
-                        key={day}
-                        style={[
-                          styles.popupDayBox,
-                          isTreatmentDay && status === 'completed' && styles.slotGreen,
-                          isTreatmentDay && status === 'missed' && styles.slotRed,
-                          isTreatmentDay && status === 'upcoming' && styles.slotGray,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.popupDayNum,
-                            isTreatmentDay && styles.todayText,
-                          ]}
-                        >
-                          {day}
-                        </Text>
-                      </View>
-                    );
-                  }
                   return (
                     <View key={`${year}-${month}`} style={styles.popupMonthContainer}>
                       {/* en-tete mois + annee */}
-                      <Text style={styles.calendarTitle}>
+                      <Text style={styles.popupMonthTitle}>
                         {monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                       </Text>
                       {/* en-tete des jours de la semaine */}
                       <View style={styles.weekHeaderRow}>
                         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, idx) => (
-                          <Text key={idx} style={styles.weekHeaderLabel}>
-                            {d}
-                          </Text>
+                          <Text key={idx} style={styles.weekHeaderLabel}>{d}</Text>
                         ))}
                       </View>
                       {/* grille du mois */}
-                      <View style={styles.monthGrid}>{gridCells}</View>
+                      <View style={styles.monthGrid}>
+                        {renderMonthCells(year, month, { getStatus: getMedDayStatus, dimInactive: true })}
+                      </View>
                     </View>
                   );
                 });
@@ -1003,14 +978,6 @@ const styles = StyleSheet.create({
   },
   popupMonthContainer: {
     marginBottom: 20,
-  },
-  popupDayBox: {
-    marginVertical: 2,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-     width: '14.28%',
-    height: 36    
   },
   popupDayNum: {
     color: grisClair,
