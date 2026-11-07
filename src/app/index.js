@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Modal, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { Ionicons } from '@expo/vector-icons';
 import { getDatabase } from '../database/db';
 import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair, rouge, vert } from '../constants/colors';
@@ -9,6 +10,8 @@ import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermedia
 /* === CONVERTIT UNE DATE EN CHAINE 'AAAA-MM-JJ' === */
 const toDateStr = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -24,6 +27,11 @@ export default function HomeScreen() {
   const [allMedicationsHistory, setAllMedicationsHistory] = useState([]);
   const [monthLogs, setMonthLogs] = useState([]);
   const [isGlobalCalendarModalVisible, setIsGlobalCalendarModalVisible] = useState(false);
+  const [celebration, setCelebration] = useState(null);
+  const { width } = useWindowDimensions();
+  const [celebrationMessage, setCelebrationMessage] = useState('');
+
+
 
   /* === DATE D'AUJOURD'HUI === */
   const dateString = now.toISOString().split('T')[0];
@@ -38,6 +46,18 @@ export default function HomeScreen() {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  /* === DISPARITION AUTOMATIQUE DU MESSAGE === */
+useEffect(() => {
+  if (!celebrationMessage) return;
+
+  const timer = setTimeout(() => {
+    setCelebrationMessage('');
+  }, 6000);
+
+  return () => clearTimeout(timer);
+}, [celebrationMessage]);
+
   
   /* === CHARGER LES MEDICAMENTS, ETATS, PRISES DU JOUR, DU MOIS, SUR 3 MOIS === */
   const loadData = async () => {
@@ -185,6 +205,8 @@ export default function HomeScreen() {
     }));
     /* mettre a jour le calendrier de bas de page */
     loadMonthLogs(db);
+    /* vérifier les récompenses */
+    await checkCelebrations(db);
   };
 
   /* === CRENEAUX REQUIS POUR UN MEDICAMENT === */
@@ -209,6 +231,74 @@ export default function HomeScreen() {
     return d >= start && d <= end;
   };
 
+/* === VERIFICATION DES RECOMPENSES === */
+const checkCelebrations = async (db) => {
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const isSunday = today.getDay() === 0;
+
+  const lastDayOfMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0
+  ).getDate();
+
+  const isLastDayOfMonth = today.getDate() === lastDayOfMonth;
+
+  // === RECOMPENSE MENSUELLE ===
+  if (isLastDayOfMonth) {
+
+    const start = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+
+    const monthKey = `month_${toDateStr(start).substring(0, 7)}`;
+
+    if (isPeriodCompleted(start, today)) {
+
+      const result = await db.runAsync(
+        `INSERT OR IGNORE INTO achievements (period_key, type)
+         VALUES (?, ?)`,
+        [monthKey, 'monthly']
+      );
+
+      if (result.changes > 0) {
+        setCelebrationMessage('Félicitations ! Un mois complet réussi...');
+        setCelebration('monthly');
+        return;
+      }
+    }
+  }
+
+  // === RECOMPENSE HEBDOMADAIRE ===
+  if (isSunday) {
+
+    const monday = getMonday(today);
+
+    const weekKey = `week_${toDateStr(monday)}`;
+
+    if (isPeriodCompleted(monday, today)) {
+
+      const result = await db.runAsync(
+        `INSERT OR IGNORE INTO achievements (period_key, type)
+         VALUES (?, ?)`,
+        [weekKey, 'weekly']
+      );
+
+      if (result.changes > 0) {
+        setCelebrationMessage('Bravo ! Une semaine sans oubli...');
+        setCelebration('weekly');
+      }
+    }
+  }
+};
+
+
+
   /* === STATUT GLOBAL D'UNE JOURNEE (TOUS MEDICAMENTS CONFONDUS) ===
      'completed' : tous les medicaments du jour ont ete pris (vert)
      'missed'    : au moins une prise du jour n'a pas ete effectuee (rouge)
@@ -226,6 +316,32 @@ export default function HomeScreen() {
     );
     return allTaken ? 'completed' : 'missed';
   };
+
+  /* === VERIFIER SI TOUTES LES JOURNEES D'UNE PERIODE SONT VERTES === */
+const isPeriodCompleted = (start, end) => {
+
+  const cursor = new Date(start);
+
+  let hasTreatment = false;
+
+  while (cursor <= end) {
+
+    const dateStr = toDateStr(cursor);
+
+    const status = getGlobalDayStatus(dateStr);
+
+    if (status === 'missed') return false;
+
+    if (status === 'completed') {
+      hasTreatment = true;
+    }
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return hasTreatment;
+};
+
 
   /* === CASES D'UN MOIS (month : 0 a 11) ===
     options.getStatus   : fonction (dateStr) => 'completed' | 'missed' | 'upcoming' | null
@@ -421,6 +537,22 @@ export default function HomeScreen() {
           ))
         )}
 
+        {/* === MESSAGE DE FELICITATIONS === */}
+{celebrationMessage !== '' && (
+  <View style={styles.celebrationMessage}>
+    <Ionicons
+      name={celebration === 'monthly' ? 'trophy' : 'ribbon'}
+      size={25}
+      color={bleuPrincipal}
+    />
+
+    <Text style={styles.celebrationMessageText}>
+      {celebrationMessage}
+    </Text>
+  </View>
+)}
+
+
         {/* === CALENDRIER BAS DE PAGE === */}
         <View style={styles.calendarContainer}>
           <Text style={styles.calendarTitle}>
@@ -551,7 +683,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* === MODAL CALENDRIER === */}
+      {/* === MODAL CALENDRIER D'UN MEDICAMENT === */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -607,7 +739,7 @@ export default function HomeScreen() {
                   return (
                     <View key={`${year}-${month}`} style={styles.popupMonthContainer}>
                       {/* en-tete mois + annee */}
-                      <Text style={styles.popupMonthTitle}>
+                      <Text style={styles.calendarTitle}>
                         {monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                       </Text>
                       {/* en-tete des jours de la semaine */}
@@ -618,7 +750,7 @@ export default function HomeScreen() {
                       </View>
                       {/* grille du mois */}
                       <View style={styles.monthGrid}>
-                        {renderMonthCells(year, month, { getStatus: getMedDayStatus, dimInactive: true })}
+                        {renderMonthCells(year, month, { getStatus: getMedDayStatus, dimInactive: false })}
                       </View>
                     </View>
                   );
@@ -743,6 +875,67 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+    {/* === ANIMATION DES RECOMPENSES === */}
+
+{celebration === 'weekly' && (
+  <View
+    pointerEvents="none"
+    style={styles.celebrationOverlay}
+  >
+    <ConfettiCannon
+      count={180}
+      origin={{ x: 0, y: 0 }}
+      fadeOut={true}
+      explosionSpeed={350}
+      fallSpeed={3000}
+      colors={[
+        '#FFD700',
+        '#FF4B6E',
+        '#3498DB',
+        '#2ECC71',
+        '#9B59B6',
+        '#FF9F43'
+      ]}
+      onAnimationEnd={() => setCelebration(null)}
+    />
+  </View>
+)}
+
+{celebration === 'monthly' && (
+  <View
+    pointerEvents="none"
+    style={styles.celebrationOverlay}
+  >
+    <ConfettiCannon
+      count={100}
+origin={{ x: width * 0.15, y: 0 }}
+      fadeOut
+      explosionSpeed={400}
+      fallSpeed={2500}
+      colors={['#FFD700', '#FFFFFF', '#FF69B4']}
+    />
+
+    <ConfettiCannon
+      count={100}
+origin={{ x: width * 0.50, y: 0 }}
+      fadeOut
+      explosionSpeed={400}
+      fallSpeed={2500}
+      colors={['#00BFFF', '#FFD700', '#FF4500']}
+    />
+
+    <ConfettiCannon
+      count={100}
+origin={{ x: width * 0.85, y: 0 }}
+      fadeOut
+      explosionSpeed={400}
+      fallSpeed={2500}
+      colors={['#ADFF2F', '#FF69B4', '#FFFFFF']}
+      onAnimationEnd={() => setCelebration(null)}
+    />
+  </View>
+)}
+
     </ScrollView>
   );
 }
@@ -795,7 +988,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 12, 
     marginBottom:12, 
-    textAlign: 'center'
+    textAlign: 'center',
   },
 
   /* === IMAGE === */
@@ -960,7 +1153,7 @@ const styles = StyleSheet.create({
     fontWeight: 600 
   }, 
   
-  /* === MODAL CALENDRIER UN MEDICAMENT === */
+  /* === MODAL CALENDRIER D'UN MEDICAMENT === */
   modalOverlay: {
     backgroundColor: transparent,
     flex: 1,
@@ -1085,4 +1278,40 @@ const styles = StyleSheet.create({
     borderColor: grisClair,
     borderRadius: 18
   },
+celebrationOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 999,
+  elevation: 999,
+},
+/* === BANDEAU DE FELICITATIONS === */
+celebrationMessage: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 14,
+  marginHorizontal: 15,
+  marginTop: 15,
+  marginBottom: 10,
+},
+
+celebrationMessageText: {
+  color: grisIntermediaire,
+  fontSize: 16,
+  fontWeight: 'bold',
+  textAlign: 'center',
+  marginLeft: 10,
+  flexShrink: 1,
+  paddingRight:1,
+  paddingLeft:1,
+  borderRadius:20,
+  borderWidth:1,
+  borderColor:'#f4f98b80',
+  backgroundColor:'#f4f98b80'
+},
+
+  
 });

@@ -1,6 +1,5 @@
 # TODO
-
-6. rajouter un popup qui intervient en fin de semaine si l'utilisateur a pris tous ses médicaments durant une semaine. Confettis
-7. rajouter un popup qui intervient en fin de mois si l'utilisateur a pris tous ses médicaments 
-durant le mois. Confettis
+1. faire disparaitre la carte d'un medicament lorsqu'on ne le prend plus. Vérifier la disparition du médicament Yyy 1 jour enregistré le samedi 7/11
+8. resoudre le problème du changement de statut entre 1h et 2h du matin
+9. verifier le bon fonctionnement en fin de semaine et de mois pour les confettis et feux d'artifice.
 

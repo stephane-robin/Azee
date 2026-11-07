@@ -31,6 +31,15 @@ export const initDatabase = async () => {
         UNIQUE(medication_id, date, slot)
       );
     `);
+
+    await dbInstance.execAsync(`
+      CREATE TABLE IF NOT EXISTS achievements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period_key TEXT NOT NULL UNIQUE,
+        type TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
   }
   return dbInstance;
 };
