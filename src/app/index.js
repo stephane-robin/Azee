@@ -7,12 +7,28 @@ import { Ionicons } from '@expo/vector-icons';
 import { getDatabase } from '../database/db';
 import { couleurFond, bleuPrincipal, bleuSecondaire, transparent, grisIntermediaire, grisSombre, grisClair, rouge, vert } from '../constants/colors';
 
-/* === CONVERTIT UNE DATE EN CHAINE 'AAAA-MM-JJ' === */
+/* =================================================
+   === CONVERTIT UNE DATE EN CHAINE 'AAAA-MM-JJ' === 
+   ================================================= */
 const toDateStr = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+/* ========================================================= 
+   === RETOURNE LE LUNDI DE LA SEMAINE D'UNE DATE DONNEE === 
+   ========================================================= */
+const getMonday = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  // si dimanche (0) on recule de 6 jours, sinon on recule de (day - 1) jours
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
-
+/* =======================================
+   === FONCTION PRINCIPALE D'AFFICHAGE ===
+   ======================================= */
 export default function HomeScreen() {
   const router = useRouter();
   const [now, setNow] = useState(new Date());
@@ -31,35 +47,41 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const [celebrationMessage, setCelebrationMessage] = useState('');
 
-
-
-  /* === DATE D'AUJOURD'HUI === */
-  const dateString = now.toISOString().split('T')[0];
+  /* ==========================
+     === DATE D'AUJOURD'HUI ===
+     ========================== */
+  const dateString = toDateStr(now);  
   const [year, month, day] = dateString.split('-');
   const localDate = new Date(year, month - 1, day);
   const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
   let formattedDate = localDate.toLocaleDateString('fr-FR', options);
   formattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
   
-  /* === HORLOGE EN TEMPS REEL === */
+  /* =============================
+     === HORLOGE EN TEMPS REEL ===
+     ============================= */
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  /* === DISPARITION AUTOMATIQUE DU MESSAGE === */
-useEffect(() => {
-  if (!celebrationMessage) return;
+  /* ==========================================================
+     === DISPARITION AUTOMATIQUE DU MESSAGE DE FELICITATION ===
+     ========================================================== */
+  useEffect(() => {
+    if (!celebrationMessage) return;
 
-  const timer = setTimeout(() => {
-    setCelebrationMessage('');
-  }, 6000);
+    const timer = setTimeout(() => {
+      setCelebrationMessage('');
+    }, 6000);
 
-  return () => clearTimeout(timer);
-}, [celebrationMessage]);
+    return () => clearTimeout(timer);
+  }, [celebrationMessage]);
 
   
-  /* === CHARGER LES MEDICAMENTS, ETATS, PRISES DU JOUR, DU MOIS, SUR 3 MOIS === */
+  /* ===========================================================================
+     === CHARGER LES MEDICAMENTS, ETATS, PRISES DU JOUR, DU MOIS, SUR 3 MOIS ===
+     =========================================================================== */
   const loadData = async () => {
     try{
       const db = await getDatabase();
@@ -79,17 +101,19 @@ useEffect(() => {
     }
   };
 
-  /* === CHARGER LES PRISES DU MOIS PRECEDENT, DU MOIS EN COURS ET DU MOIS SUIVANT 
-  fonction necessaire car appelee une fois au demarrage pour le calendrier mensuel 
-  et aussi lors de l'ouverture du modal de calendrier global === */
+  /* =================================================================================
+     === CHARGER LES PRISES DU MOIS PRECEDENT, DU MOIS EN COURS ET DU MOIS SUIVANT ===
+     fonction necessaire car appelee une fois au demarrage pour le calendrier mensuel 
+     et aussi lors de l'ouverture du modal de calendrier global 
+     ================================================================================= */
   const loadMonthLogs = async (dbParam) => {
     try {
       const db = dbParam || (await getDatabase());
-      /* mois de 1 a 12 */
+      // mois de 1 a 12
       const [y, m] = dateString.split('-').map(Number); 
-      /* 1er jour du mois precedent */
+      // 1er jour du mois precedent
       const from = toDateStr(new Date(y, m - 2, 1)); 
-      /* dernier jour du mois suivant */
+      // dernier jour du mois suivant
       const to = toDateStr(new Date(y, m + 1, 0)); 
       const rows = await db.getAllAsync(
         'SELECT medication_id, date, slot FROM daily_logs WHERE date BETWEEN ? AND ? AND taken = 1',
@@ -106,7 +130,9 @@ useEffect(() => {
     }, [dateString])
   );
 
-  /* === CHARGER TOUS LES ETATS D'UN MEDICAMENT === */
+  /* ==============================================
+     === CHARGER TOUS LES ETATS D'UN MEDICAMENT ===
+     ============================================== */
   const openCalendarModal = async (med) => {
     setSelectedMed(med);
     try {
@@ -122,10 +148,11 @@ useEffect(() => {
     }
   };
 
-  /* === CALCUL DU STATUT GLOBAL D'UNE JOURNEE POUR UN MEDICAMENT === */
+  /* ================================================================
+     === CALCUL DU STATUT GLOBAL D'UNE JOURNEE POUR UN MEDICAMENT ===
+     ================================================================ */
   const getDayStatus = (dateStr, med) => {
-    const today = new Date().toISOString().split('T')[0];
-    // determiner combien de creneaux sont requis par jour
+    const today = toDateStr(new Date());    
     let requiredSlotsCount = 0;
     if (med.take_morning === 1) requiredSlotsCount++;
     if (med.take_noon === 1) requiredSlotsCount++;
@@ -144,7 +171,9 @@ useEffect(() => {
     return 'upcoming'; 
   };
 
-  /* === SUPPRIMER UN MEDICAMENT DE LA BDD === */
+  /* =========================================
+     === SUPPRIMER UN MEDICAMENT DE LA BDD ===
+     ========================================= */
   const deleteMedication = async (id, name) => {
     Alert.alert(
       'Supprimer le médicament',
@@ -165,11 +194,13 @@ useEffect(() => {
     );
   };
   
-  /* === BASCULER L'ETAT DE LA PRISE D'UN MEDICAMENT (ROUGE VERT) === */ 
+  /* ================================================================
+     === BASCULER L'ETAT DE LA PRISE D'UN MEDICAMENT (ROUGE VERT) ===
+     ================================================================ */ 
   const handleSlotPress = (medId, slot, medName, slotLabel) => {
     const currentStatus = logs[`${medId}_${slot}`] || false;
     if (currentStatus) {
-      /* si la prise du medicament est verte, on demande confirmation avant de le passe a rouge */
+      // si la prise du medicament est verte, on demande confirmation avant de le passe a rouge
       Alert.alert(
         'Modifier le statut',
         `Voulez-vous vraiment marquer la prise "${slotLabel}" de ${medName} comme "non prise" ?`,
@@ -183,12 +214,14 @@ useEffect(() => {
         ]
       );
     } else {
-      /* si la prise du medicament est rouge, on passe a vert */
+      // si la prise du medicament est rouge, on passe a vert
       executeToggle(medId, slot, false);
     }
   };
 
-  /* === EXECUTER LA MODIFICATION DANS LA BDD === */
+  /* ============================================
+     === EXECUTER LA MODIFICATION DANS LA BDD ===
+     ============================================ */
   const executeToggle = async (medId, slot, currentStatus) => {
     const db = await getDatabase();
     const newStatus = !currentStatus;
@@ -203,13 +236,15 @@ useEffect(() => {
       ...prev,
       [`${medId}_${slot}`]: newStatus,
     }));
-    /* mettre a jour le calendrier de bas de page */
+    // mettre a jour le calendrier de bas de page
     loadMonthLogs(db);
-    /* vérifier les récompenses */
+    // vérifier les récompenses
     await checkCelebrations(db);
   };
 
-  /* === CRENEAUX REQUIS POUR UN MEDICAMENT === */
+  /* ==========================================
+     === CRENEAUX REQUIS POUR UN MEDICAMENT ===
+     ========================================== */
   const getRequiredSlots = (med) => {
     const slots = [];
     if (med.take_morning === 1) slots.push('morning');
@@ -219,7 +254,9 @@ useEffect(() => {
     return slots;
   };
 
-  /* === VERIFIER SI UN TRAITEMENT EST EN COURS A UNE DATE DONNEE ('AAAA-MM-JJ') === */
+  /* ===============================================================================
+     === VERIFIER SI UN TRAITEMENT EST EN COURS A UNE DATE DONNEE ('AAAA-MM-JJ') ===
+     =============================================================================== */
   const isMedicationActiveOn = (med, dateStr) => {
     if (!med.start_date || !med.duration_days) return false;
     const [sYear, sMonth, sDay] = med.start_date.split('-').map(Number);
@@ -231,41 +268,36 @@ useEffect(() => {
     return d >= start && d <= end;
   };
 
-/* === VERIFICATION DES RECOMPENSES === */
+/* ====================================
+   === VERIFICATION DES RECOMPENSES ===
+   ==================================== */
 const checkCelebrations = async (db) => {
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const isSunday = today.getDay() === 0;
-
   const lastDayOfMonth = new Date(
     today.getFullYear(),
     today.getMonth() + 1,
     0
   ).getDate();
-
   const isLastDayOfMonth = today.getDate() === lastDayOfMonth;
 
-  // === RECOMPENSE MENSUELLE ===
+  /* ============================
+     === RECOMPENSE MENSUELLE ===
+     ============================ */
   if (isLastDayOfMonth) {
-
     const start = new Date(
       today.getFullYear(),
       today.getMonth(),
       1
     );
-
     const monthKey = `month_${toDateStr(start).substring(0, 7)}`;
-
     if (isPeriodCompleted(start, today)) {
-
       const result = await db.runAsync(
         `INSERT OR IGNORE INTO achievements (period_key, type)
          VALUES (?, ?)`,
         [monthKey, 'monthly']
       );
-
       if (result.changes > 0) {
         setCelebrationMessage('Félicitations ! Un mois complet réussi...');
         setCelebration('monthly');
@@ -274,21 +306,18 @@ const checkCelebrations = async (db) => {
     }
   }
 
-  // === RECOMPENSE HEBDOMADAIRE ===
+  /* ===============================
+     === RECOMPENSE HEBDOMADAIRE ===
+     =============================== */
   if (isSunday) {
-
     const monday = getMonday(today);
-
     const weekKey = `week_${toDateStr(monday)}`;
-
     if (isPeriodCompleted(monday, today)) {
-
       const result = await db.runAsync(
         `INSERT OR IGNORE INTO achievements (period_key, type)
          VALUES (?, ?)`,
         [weekKey, 'weekly']
       );
-
       if (result.changes > 0) {
         setCelebrationMessage('Bravo ! Une semaine sans oubli...');
         setCelebration('weekly');
@@ -297,13 +326,13 @@ const checkCelebrations = async (db) => {
   }
 };
 
-
-
-  /* === STATUT GLOBAL D'UNE JOURNEE (TOUS MEDICAMENTS CONFONDUS) ===
+  /* ================================================================
+     === STATUT GLOBAL D'UNE JOURNEE (TOUS MEDICAMENTS CONFONDUS) ===
      'completed' : tous les medicaments du jour ont ete pris (vert)
      'missed'    : au moins une prise du jour n'a pas ete effectuee (rouge)
      'upcoming'  : journee future avec un traitement prevu (gris)
-     null        : aucun traitement ce jour-la */
+     null        : aucun traitement ce jour-la 
+     ================================================================ */
   const takenSet = new Set(monthLogs.map((l) => `${l.medication_id}_${l.date}_${l.slot}`));
   const getGlobalDayStatus = (dateStr) => {
     const dayMeds = medications.filter(
@@ -317,50 +346,43 @@ const checkCelebrations = async (db) => {
     return allTaken ? 'completed' : 'missed';
   };
 
-  /* === VERIFIER SI TOUTES LES JOURNEES D'UNE PERIODE SONT VERTES === */
-const isPeriodCompleted = (start, end) => {
-
-  const cursor = new Date(start);
-
-  let hasTreatment = false;
-
-  while (cursor <= end) {
-
-    const dateStr = toDateStr(cursor);
-
-    const status = getGlobalDayStatus(dateStr);
-
-    if (status === 'missed') return false;
-
-    if (status === 'completed') {
-      hasTreatment = true;
+  /* =================================================================
+     === VERIFIER SI TOUTES LES JOURNEES D'UNE PERIODE SONT VERTES ===
+     ================================================================= */
+  const isPeriodCompleted = (start, end) => {
+    const cursor = new Date(start);
+    let hasTreatment = false;
+    while (cursor <= end) {
+      const dateStr = toDateStr(cursor);
+      const status = getGlobalDayStatus(dateStr);
+      if (status === 'missed') return false;
+      if (status === 'completed') {
+        hasTreatment = true;
+      }
+      cursor.setDate(cursor.getDate() + 1);
     }
+    return hasTreatment;
+  };
 
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  return hasTreatment;
-};
-
-
-  /* === CASES D'UN MOIS (month : 0 a 11) ===
-    options.getStatus   : fonction (dateStr) => 'completed' | 'missed' | 'upcoming' | null
+  /* ========================================
+     === CASES D'UN MOIS (month : 0 a 11) ===
+     options.getStatus   : fonction (dateStr) => 'completed' | 'missed' | 'upcoming' | null
                           par defaut : statut global tous medicaments confondus
-    options.dimInactive : true pour griser le numero des jours sans statut */
+     options.dimInactive : true pour griser le numero des jours sans statut */
   const renderMonthCells = (year, month, options = {}) => {
     const { getStatus = getGlobalDayStatus, dimInactive = false } = options;
-    /* nombre de jours dans le mois */
+    // nombre de jours dans le mois
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     /* premier jour du mois (0 = Dimanche par defaut)
        et ajustement pour faire commencer la semaine le lundi = 0 */
     const firstDay = new Date(year, month, 1).getDay();
     const startingPadding = (firstDay + 6) % 7;
-    /* cases vides precedant le 1er du mois */
+    // cases vides precedant le 1er du mois
     const gridCells = [];
     for (let i = 0; i < startingPadding; i++) {
       gridCells.push(<View key={`empty-${i}`} style={styles.dayBox} />);
     }
-    /* cases pour chaque jour du mois */
+    // cases pour chaque jour du mois
     for (let day = 1; day <= daysInMonth; day++) {
       const isToday =
         day === now.getDate() &&
@@ -377,16 +399,16 @@ const isPeriodCompleted = (start, end) => {
             status === 'completed' && styles.slotGreen,
             status === 'missed' && styles.slotRed,
             status === 'upcoming' && styles.slotGray,
-            /* aujourd'hui : toujours un contour gris (couleur de fond selon le statut) */
+            // aujourd'hui : toujours un contour gris (couleur de fond selon le statut)
             isToday && styles.todayBorder,
           ]}
         >
           <Text
             style={[
               styles.dayNum,
-              /* jours sans traitement grisés dans le modal d'un médicament (sauf aujourd'hui) */
+              // jours sans traitement grisés dans le modal d'un médicament (sauf aujourd'hui)
               !status && dimInactive && !isToday && styles.popupDayNum,
-              /* texte blanc uniquement sur une case colorée */
+              // texte blanc uniquement sur une case colorée
               status && styles.todayText,
             ]}
           >
@@ -398,7 +420,9 @@ const isPeriodCompleted = (start, end) => {
     return gridCells;
   };
 
-  /* === UN TRAITEMENT EST-IL PREVU AU MOINS UN JOUR DU MOIS ? === */
+  /* =============================================================
+     === UN TRAITEMENT EST-IL PREVU AU MOINS UN JOUR DU MOIS ? ===
+     ============================================================= */
   const monthHasTreatment = (year, month) => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     for (let day = 1; day <= daysInMonth; day++) {
@@ -407,9 +431,11 @@ const isPeriodCompleted = (start, end) => {
     return false;
   };
 
-  /* === MOIS A AFFICHER DANS LE MODAL CALENDRIER GLOBAL ===
+  /* =======================================================
+     === MOIS A AFFICHER DANS LE MODAL CALENDRIER GLOBAL ===
      mois precedent (si un traitement y etait actif), mois en cours,
-     mois suivant (si un traitement y est prevu) */
+     mois suivant (si un traitement y est prevu)
+     ======================================================= */
   const getGlobalCalendarMonths = () => {
     const current = new Date(now.getFullYear(), now.getMonth(), 1);
     const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -421,27 +447,37 @@ const isPeriodCompleted = (start, end) => {
     return months;
   };
 
-  /* === OUVRIR LE MODAL DE LA POSOLOGIE D'UN MEDICAMENT === */
+  /* =======================================================
+     === OUVRIR LE MODAL DE LA POSOLOGIE D'UN MEDICAMENT ===
+     ======================================================= */
   const openTextModal = (med) => {
     setSelectedMed(med);
     setIsPosologyModalVisible(true);
   };
 
-  /* === OUVRIR LE MODAL DES CONDITIONS === */
+  /* ======================================
+     === OUVRIR LE MODAL DES CONDITIONS ===
+     ====================================== */
   const openConditionsModal = () => {
     setIsTermsModalVisible(true);
   };
 
-  /* === OUVRIR LE MODAL CALENDRIER GLOBAL === */
+  /* =========================================
+     === OUVRIR LE MODAL CALENDRIER GLOBAL ===
+     ========================================= */
   const openGlobalCalendarModal = async () => {
     await loadMonthLogs();
     setIsGlobalCalendarModalVisible(true);
   };
 
-  /* === LISTE FILTREE DES MEDICAMENTS EN COURS === */
+  /* ==============================================
+     === LISTE FILTREE DES MEDICAMENTS EN COURS ===
+     ============================================== */
   const activeMedications = medications.filter((med) => isMedicationActiveOn(med, dateString));
 
-  /* === OUVRIR LE MODAL DE L'HISTORIQUE DE TOUS LES MEDICAMENTS === */
+  /* ===============================================================
+     === OUVRIR LE MODAL DE L'HISTORIQUE DE TOUS LES MEDICAMENTS ===
+     =============================================================== */
   const openHistoryModal = async () => {
     try {
       const db = await getDatabase();
@@ -538,20 +574,19 @@ const isPeriodCompleted = (start, end) => {
         )}
 
         {/* === MESSAGE DE FELICITATIONS === */}
-{celebrationMessage !== '' && (
-  <View style={styles.celebrationMessage}>
-    <Ionicons
-      name={celebration === 'monthly' ? 'trophy' : 'ribbon'}
-      size={25}
-      color={bleuPrincipal}
-    />
+        {celebrationMessage !== '' && (
+          <View style={styles.celebrationMessage}>
+            <Ionicons
+              name={celebration === 'monthly' ? 'trophy' : 'ribbon'}
+              size={25}
+              color={bleuPrincipal}
+            />
 
-    <Text style={styles.celebrationMessageText}>
-      {celebrationMessage}
-    </Text>
-  </View>
-)}
-
+            <Text style={styles.celebrationMessageText}>
+              {celebrationMessage}
+            </Text>
+          </View>
+        )}
 
         {/* === CALENDRIER BAS DE PAGE === */}
         <View style={styles.calendarContainer}>
@@ -875,72 +910,73 @@ const isPeriodCompleted = (start, end) => {
         </View>
       </Modal>
 
-    {/* === ANIMATION DES RECOMPENSES === */}
+      {/* === ANIMATION DES RECOMPENSES === */}
+      {celebration === 'weekly' && (
+        <View
+          pointerEvents="none"
+          style={styles.celebrationOverlay}
+        >
+          <ConfettiCannon
+            count={180}
+            origin={{ x: 0, y: 0 }}
+            fadeOut={true}
+            explosionSpeed={350}
+            fallSpeed={3000}
+            colors={[
+              '#FFD700',
+              '#FF4B6E',
+              '#3498DB',
+              '#2ECC71',
+              '#9B59B6',
+              '#FF9F43'
+            ]}
+            onAnimationEnd={() => setCelebration(null)}
+          />
+        </View>
+      )}
 
-{celebration === 'weekly' && (
-  <View
-    pointerEvents="none"
-    style={styles.celebrationOverlay}
-  >
-    <ConfettiCannon
-      count={180}
-      origin={{ x: 0, y: 0 }}
-      fadeOut={true}
-      explosionSpeed={350}
-      fallSpeed={3000}
-      colors={[
-        '#FFD700',
-        '#FF4B6E',
-        '#3498DB',
-        '#2ECC71',
-        '#9B59B6',
-        '#FF9F43'
-      ]}
-      onAnimationEnd={() => setCelebration(null)}
-    />
-  </View>
-)}
+      {celebration === 'monthly' && (
+        <View
+          pointerEvents="none"
+          style={styles.celebrationOverlay}
+        >
+          <ConfettiCannon
+            count={100}
+      origin={{ x: width * 0.15, y: 0 }}
+            fadeOut
+            explosionSpeed={400}
+            fallSpeed={2500}
+            colors={['#FFD700', '#FFFFFF', '#FF69B4']}
+          />
 
-{celebration === 'monthly' && (
-  <View
-    pointerEvents="none"
-    style={styles.celebrationOverlay}
-  >
-    <ConfettiCannon
-      count={100}
-origin={{ x: width * 0.15, y: 0 }}
-      fadeOut
-      explosionSpeed={400}
-      fallSpeed={2500}
-      colors={['#FFD700', '#FFFFFF', '#FF69B4']}
-    />
+          <ConfettiCannon
+            count={100}
+      origin={{ x: width * 0.50, y: 0 }}
+            fadeOut
+            explosionSpeed={400}
+            fallSpeed={2500}
+            colors={['#00BFFF', '#FFD700', '#FF4500']}
+          />
 
-    <ConfettiCannon
-      count={100}
-origin={{ x: width * 0.50, y: 0 }}
-      fadeOut
-      explosionSpeed={400}
-      fallSpeed={2500}
-      colors={['#00BFFF', '#FFD700', '#FF4500']}
-    />
-
-    <ConfettiCannon
-      count={100}
-origin={{ x: width * 0.85, y: 0 }}
-      fadeOut
-      explosionSpeed={400}
-      fallSpeed={2500}
-      colors={['#ADFF2F', '#FF69B4', '#FFFFFF']}
-      onAnimationEnd={() => setCelebration(null)}
-    />
-  </View>
-)}
+          <ConfettiCannon
+            count={100}
+      origin={{ x: width * 0.85, y: 0 }}
+            fadeOut
+            explosionSpeed={400}
+            fallSpeed={2500}
+            colors={['#ADFF2F', '#FF69B4', '#FFFFFF']}
+            onAnimationEnd={() => setCelebration(null)}
+          />
+        </View>
+      )}
 
     </ScrollView>
   );
 }
 
-/* === COMPOSANT POUR CHAQUE MOMENT DE PRISE === */
+/* =============================================
+   === COMPOSANT POUR CHAQUE MOMENT DE PRISE ===
+   ============================================= */
 function SlotCard({ label, isEnabled, isTaken, onPress }) {
   if (!isEnabled) {
     return (
@@ -961,6 +997,9 @@ function SlotCard({ label, isEnabled, isTaken, onPress }) {
   );
 }
 
+/* ==============
+   === STYLES ===
+   ============== */
 const styles = StyleSheet.create({
   container: { 
     backgroundColor: couleurFond,
@@ -974,7 +1013,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40
   },
 
-  /* === HAUT DE PAGE === */
+  // haut de page
   titre:{
     color:bleuPrincipal,
     fontSize: 22,
@@ -991,7 +1030,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  /* === IMAGE === */
+  // image
   illustration: {
     marginBottom: 12,
     width: '100%',
@@ -999,7 +1038,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
 
-  /* === CARTES DE MEDICAMENTS === */
+  // cartes de medicaments
   emptyText: { 
     fontSize: 16,
     color: grisIntermediaire, 
@@ -1028,7 +1067,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     flexWrap: 'wrap' 
   },
-  /* boutons vert rouge gris */
+  // boutons vert rouge gris dans une carte
   slotsRow: { 
     flexDirection: 'row', 
     gap: 8,
@@ -1059,7 +1098,7 @@ const styles = StyleSheet.create({
     fontSize: 11, 
     marginTop: 2 
   },
-  /* menu d'un medicament */
+  // menu d'un medicament dans une carte
   actionButtonsRow: {
     flexDirection: 'row',
     marginTop:6,
@@ -1074,7 +1113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
 
-  /* === CALENDRIER === */
+  // calendrier
   calendarContainer: { 
     backgroundColor: '#fff', 
     padding: 16,  
@@ -1153,7 +1192,7 @@ const styles = StyleSheet.create({
     fontWeight: 600 
   }, 
   
-  /* === MODAL CALENDRIER D'UN MEDICAMENT === */
+  // modal calendrier d'un medicament
   modalOverlay: {
     backgroundColor: transparent,
     flex: 1,
@@ -1188,7 +1227,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   }, 
   
-  /* === MENU === */
+  // menu
   menu: {
     flexDirection: 'row',
     backgroundColor:'white',
@@ -1226,7 +1265,7 @@ const styles = StyleSheet.create({
     justifyContent:'center'
   },
 
-  /* === MODAL POSOLOGIE === */
+  // modal posologie
   posologyBox: {
     backgroundColor: '#fff',
     marginVertical: 14,
@@ -1252,7 +1291,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  /* === MODAL HISTORIQUE === */
+  // modal historique
   historyCard: {
     backgroundColor: couleurFond,
     marginBottom: 10,
@@ -1278,40 +1317,37 @@ const styles = StyleSheet.create({
     borderColor: grisClair,
     borderRadius: 18
   },
-celebrationOverlay: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  zIndex: 999,
-  elevation: 999,
-},
-/* === BANDEAU DE FELICITATIONS === */
-celebrationMessage: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: 14,
-  marginHorizontal: 15,
-  marginTop: 15,
-  marginBottom: 10,
-},
-
-celebrationMessageText: {
-  color: grisIntermediaire,
-  fontSize: 16,
-  fontWeight: 'bold',
-  textAlign: 'center',
-  marginLeft: 10,
-  flexShrink: 1,
-  paddingRight:1,
-  paddingLeft:1,
-  borderRadius:20,
-  borderWidth:1,
-  borderColor:'#f4f98b80',
-  backgroundColor:'#f4f98b80'
-},
-
-  
+  celebrationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+    elevation: 999,
+  },
+  // bandeau de felicitations
+  celebrationMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    marginHorizontal: 15,
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  celebrationMessageText: {
+    color: grisIntermediaire,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginLeft: 10,
+    flexShrink: 1,
+    paddingRight:1,
+    paddingLeft:1,
+    borderRadius:20,
+    borderWidth:1,
+    borderColor:'#f4f98b80',
+    backgroundColor:'#f4f98b80'
+  },
 });

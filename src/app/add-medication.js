@@ -28,15 +28,13 @@ export default function AddMedicationScreen() {
       Alert.alert('Erreur', 'Veuillez saisir le nom du médicament.');
       return;
     }
-
     if (!morning && !noon && !evening && !night) {
       Alert.alert('Erreur', 'Sélectionnez au moins un moment de prise.');
       return;
     }
-
     const db = await getDatabase();
-    const startDate = new Date().toISOString().split('T')[0];
-
+    const today = new Date();
+    const startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     await db.runAsync(
       `INSERT INTO medications (name, duration_days, start_date, take_morning, take_noon, take_evening, take_night, posologie) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -51,7 +49,6 @@ export default function AddMedicationScreen() {
         posologie.trim()
       ]
     );
-
     router.back();
   };
   
@@ -150,6 +147,9 @@ export default function AddMedicationScreen() {
   );
 }
 
+/* ==============
+   === STYLES ===
+   ============== */
 const styles = StyleSheet.create({
   scrollContent: { 
     backgroundColor: couleurFond,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     paddingTop: 20, 
     paddingBottom: 40
   },
-  /* === HAUT DE PAGE === */
+  // haut de page
   titre:{
     color:bleuPrincipal,
     fontSize: 22,
@@ -183,12 +183,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     backgroundColor: '#fff', 
     borderRadius: 25,        
-    // Ombres iOS
+    // ombres iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    // Ombre Android
+    // ombres Android
     elevation: 6,
     marginVertical: 8
     },
